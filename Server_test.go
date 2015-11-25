@@ -14,23 +14,28 @@
 package ChatServer
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"strconv"
 	"testing"
 )
 
 func TestServer(t *testing.T) {
 	var s ChatServer
-	s.ReadConf("./ChatServer.conf", processLine)
+	s.ReadConf("./ChatServer.conf", s.ProcessConf)
 
-	r := bufio.NewReader(os.Stdin)
+	if port, ok := s.ChatConfigData["ChatPort"]; ok {
+		if a, err := strconv.Atoi(port); err != nil {
+			fmt.Println("Conve ChatPort to int Error!")
+			return
+		} else {
+			s.Port = a
+			fmt.Println(a)
+		}
+	} else {
+		fmt.Println("Cant find ChatPort")
+	}
 
-	//for {
-	b, _, _ := r.ReadLine()
-	line := string(b)
-	//tokens := strings.Split(line, " ")
-	fmt.Println(line)
-	//}
-	fmt.Println("中文")
+	fmt.Println(s.Port)
+
+	fmt.Println("ChatServer .stop")
 }
