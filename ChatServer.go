@@ -18,8 +18,8 @@ type Client struct {
 	Level     int
 	Area      int
 	Viplevel  int
-	RecMsg    chan<- []byte
-	AckMsg    <-chan []byte
+	RecMsg    chan []byte
+	AckMsg    chan []byte
 	//ChatChannlID  int
 	Client_Socket net.Conn
 	UserRelation
@@ -37,7 +37,7 @@ type ChatServer struct {
 	UserList map[net.Conn]*Client //用户列表
 	//ChannlList       map[int]chan byte    //通道列表
 	//ChannlList_Count []int                //统计Channlist_count里面各个Channl的用户数
-	//DataChannl       chan byte            //中转接受数据
+	DataChannl     chan byte //中转接受数据
 	ChatConfigData map[string]string
 }
 
@@ -79,7 +79,7 @@ func (this *ChatServer) InitChatServerData() {
 	this.ID = 0
 	this.Port = 0
 	this.Host = ""
-	//this.DataChannl = make(chan byte, 1024)
+	this.DataChannl = make(chan byte, 1024)
 	this.ChatConfigData = make(map[string]string, 0)
 	this.UserList = make(map[net.Conn]*Client, 100)
 	//this.ChannlList = make(map[int]chan byte, 0)
@@ -129,7 +129,7 @@ func (this *ChatServer) NewClient(n net.Conn) {
 
 			if n != 0 {
 				client.RecMsg <- buf
-				client.ClientMsgProcess()
+				//client.ClientMsgProcess(buf)
 			}
 		}
 	}()
@@ -152,13 +152,25 @@ func (this *ChatServer) NewClient(n net.Conn) {
 		}
 	}()
 
+	go func() {
+		for {
+
+		}
+	}()
+
 }
 
 func (this *Client) ClientMsgProcess() {
 	select {
 	case <-this.RecMsg:
 		{
-
+			var d []byte
+			d = <-this.RecMsg
+			fmt.Println(d)
+		}
+	case <-this.AckMsg:
+		{
+			//d := <-this.AckMsg
 		}
 	default:
 		{
