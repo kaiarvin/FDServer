@@ -13,29 +13,27 @@
 //}
 package ChatServer
 
-import (
-	"fmt"
-	"strconv"
-	"testing"
-)
+import "testing"
 
 func TestServer(t *testing.T) {
 	var s ChatServer
-	s.ReadConf("./ChatServer.conf", s.ProcessConf)
+	s.ReadConf("./ChatServer.conf")
 
-	if port, ok := s.ChatConfigData["ChatPort"]; ok {
-		if a, err := strconv.Atoi(port); err != nil {
-			fmt.Println("Conve ChatPort to int Error!")
-			return
-		} else {
-			s.Port = a
-			fmt.Println(a)
-		}
-	} else {
-		fmt.Println("Cant find ChatPort")
-	}
+	//	if port, ok := s.ChatConfigData["ChatPort"]; ok {
+	//		if a, err := strconv.Atoi(port); err != nil {
+	//			fmt.Println("Conve ChatPort to int Error!")
+	//			return
+	//		} else {
+	//			s.Port = a
+	//			fmt.Println(a)
+	//		}
+	//	} else {
+	//		fmt.Println("Cant find ChatPort")
+	//	}
 
-	fmt.Println(s.Port)
+	//	fmt.Println(s.Port)
 
-	fmt.Println("ChatServer .stop")
+	//	fmt.Println("ChatServer .stop")
+
+	s.InitServer()
 }

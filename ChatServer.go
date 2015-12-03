@@ -12,15 +12,16 @@ import (
 )
 
 type Client struct {
-	AccountID int
-	Name      string
-	Icon      int
-	Level     int
-	Area      int
-	Viplevel  int
-	RecMsg    chan []byte
-	AckMsg    chan []byte
-	//ChatChannlID  int
+	AccountID     int
+	Name          string
+	Icon          int
+	Level         int
+	Area          int
+	Viplevel      int
+	IsLive        bool
+	RecMsg        chan string
+	AckMsg        chan string
+	ChatServer    *ChatServer
 	Client_Socket net.Conn
 	UserRelation
 }
@@ -39,9 +40,11 @@ type ChatServer struct {
 	//ChannlList_Count []int                //统计Channlist_count里面各个Channl的用户数
 	DataChannl     chan byte //中转接受数据
 	ChatConfigData map[string]string
+	RecDataSize    uint64
+	AckDataSize    uint64
 }
 
-func (this *ChatServer) ProcessConf(args []string) {
+func (this *ChatServer) processConf(args []string) {
 	if len(args) != 2 {
 		return
 	} else {
@@ -50,8 +53,8 @@ func (this *ChatServer) ProcessConf(args []string) {
 	fmt.Println(args, this.ChatConfigData)
 }
 
-func (this *ChatServer) ReadConf(name string, handler func([]string)) (err error) {
-	this.InitChatServerData()
+func (this *ChatServer) ReadConf(name string) (err error) {
+	this.initChatServerData()
 	f, err := os.Open(name)
 	if err != nil {
 		log.Fatalln(err)
@@ -64,7 +67,7 @@ func (this *ChatServer) ReadConf(name string, handler func([]string)) (err error
 		line = strings.TrimSpace(line)
 		buf := strings.Split(line, " = ")
 
-		handler(buf)
+		this.processConf(buf)
 		if err != nil {
 			if err == io.EOF {
 				return nil
@@ -75,7 +78,7 @@ func (this *ChatServer) ReadConf(name string, handler func([]string)) (err error
 	return nil
 }
 
-func (this *ChatServer) InitChatServerData() {
+func (this *ChatServer) initChatServerData() {
 	this.ID = 0
 	this.Port = 0
 	this.Host = ""
@@ -86,97 +89,117 @@ func (this *ChatServer) InitChatServerData() {
 }
 
 func (this *ChatServer) InitServer() error {
-	serverhost := this.ChatConfigData["ChatHost"] + ":" + this.ChatConfigData["ChatPort"]
-	server, err := net.Listen("TCP4", serverhost)
+	serverhost := ":" + this.ChatConfigData["ChatPort"]
+
+	server, err := net.Listen("tcp4", serverhost)
+
 	defer server.Close()
 
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-
+	//return nil
 	//监听连接
 	for {
+		fmt.Println("Wait Accept.")
 		client_socket, err := server.Accept()
 		if err != nil {
 			return err
 		}
-		this.NewClient(client_socket)
+		this.newClient(client_socket)
+		fmt.Println("Accept success")
 	}
+	fmt.Println("End......")
 
 	return nil
 }
 
-func (this *ChatServer) NewClient(n net.Conn) {
-	client := &Client{Client_Socket: n}
-	client.RecMsg = make(chan []byte, 1024)
-	client.AckMsg = make(chan []byte, 1024)
-	this.UserList[n] = client
+func (this *ChatServer) newClient(n net.Conn) {
+	client := &Client{IsLive: true, ChatServer: this, Client_Socket: n}
+	client.RecMsg = make(chan string, 1024)
+	client.AckMsg = make(chan string, 1024)
 
+	this.UserList[n] = client
+	fmt.Println(client)
+	fmt.Println("UserList: ", len(this.UserList))
+	//return
 	//创建接受发送线程
 
 	go func() {
+		var buf []byte
 		for {
-			var buf []byte
+			fmt.Println("Socket Waiting Read.")
+			buf = make([]byte, 1024)
 			n, err := client.Client_Socket.Read(buf)
 			defer client.Client_Socket.Close()
 
 			if err != nil {
 				if err != io.EOF {
 					fmt.Println("Read Msg:", err)
-					return
+					client.IsLive = false
+					break
 				}
 			}
-
+			str := string(buf)
+			fmt.Println(str)
+			fmt.Println("Rec len: ", n)
 			if n != 0 {
-				client.RecMsg <- buf
-				//client.ClientMsgProcess(buf)
+				client.RecMsg <- str
+				client.ChatServer.RecDataSize += uint64(n)
+				client.ClientMsgProcess()
 			}
 		}
 	}()
 
-	go func() {
-		for {
-			buf := <-client.AckMsg
-			n, err := client.Client_Socket.Write(buf)
-			defer client.Client_Socket.Close()
-
-			if err != nil {
-				if err != io.EOF {
-					fmt.Println("Write Msg:", err)
-					return
-				}
-			}
-
-			if n != 0 {
-			}
-		}
-	}()
-
-	go func() {
-		for {
-
-		}
-	}()
+	//	go func() {
+	//		for {
+	//			fmt.Println("ClientMsgProcess.")
+	//			client.ClientMsgProcess()
+	//			defer func() {
+	//				close(client.AckMsg)
+	//				close(client.RecMsg)
+	//				client.Client_Socket.Close()
+	//			}()
+	//			if !client.IsLive {
+	//				break
+	//			}
+	//		}
+	//	}()
 
 }
 
 func (this *Client) ClientMsgProcess() {
+	fmt.Println("In ClientMsgProcess...")
 	select {
-	case <-this.RecMsg:
+	case buf := <-this.RecMsg:
 		{
-			var d []byte
-			d = <-this.RecMsg
-			fmt.Println(d)
+			fmt.Println("In <-this.RecMsg...")
+			//buf := <-this.RecMsg
+			fmt.Println(buf)
+			fmt.Println("Out <-this.RecMsg...")
 		}
 	case <-this.AckMsg:
 		{
-			//d := <-this.AckMsg
-		}
-	default:
-		{
+			buf := []byte(<-this.AckMsg)
+			n, err := this.Client_Socket.Write(buf)
+			if err != nil {
+				if err != io.EOF {
+					return
+				}
+			}
+
+			if n != 0 {
+				this.ChatServer.AckDataSize += uint64(n)
+			}
 
 		}
 	}
+}
+
+func (this *Client) SendToClient(buf string) {
+	this.AckMsg <- buf
+	this.ClientMsgProcess()
 }
 
 func (this *ChatServer) InitDB(addr string, host string, DBname string) {}
