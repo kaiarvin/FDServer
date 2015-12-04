@@ -141,32 +141,18 @@ func (this *ChatServer) newClient(n net.Conn) {
 					break
 				}
 			}
-			str := string(buf)
-			fmt.Println(str)
-			fmt.Println("Rec len: ", n)
+
 			if n != 0 {
-				client.RecMsg <- str
+				data := string(buf[:n])
+				fmt.Println(data)
+				fmt.Println("Rec len: ", n)
+
+				client.RecMsg <- data
 				client.ChatServer.RecDataSize += uint64(n)
 				client.ClientMsgProcess()
 			}
 		}
 	}()
-
-	//	go func() {
-	//		for {
-	//			fmt.Println("ClientMsgProcess.")
-	//			client.ClientMsgProcess()
-	//			defer func() {
-	//				close(client.AckMsg)
-	//				close(client.RecMsg)
-	//				client.Client_Socket.Close()
-	//			}()
-	//			if !client.IsLive {
-	//				break
-	//			}
-	//		}
-	//	}()
-
 }
 
 func (this *Client) ClientMsgProcess() {
@@ -175,24 +161,26 @@ func (this *Client) ClientMsgProcess() {
 	case buf := <-this.RecMsg:
 		{
 			fmt.Println("In <-this.RecMsg...")
-			//buf := <-this.RecMsg
 			fmt.Println(buf)
+			//this.SendToClient(buf)
 			fmt.Println("Out <-this.RecMsg...")
 		}
-	case <-this.AckMsg:
+	case data := <-this.AckMsg:
 		{
-			buf := []byte(<-this.AckMsg)
+			fmt.Println("In <-this.AckMsg...")
+			fmt.Println("data:", data)
+			buf := []byte(data)
 			n, err := this.Client_Socket.Write(buf)
 			if err != nil {
 				if err != io.EOF {
 					return
 				}
 			}
-
+			fmt.Println("Ack len: ", n)
 			if n != 0 {
 				this.ChatServer.AckDataSize += uint64(n)
 			}
-
+			fmt.Println("In <-this.AckMsg...")
 		}
 	}
 }
