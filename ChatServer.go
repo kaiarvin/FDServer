@@ -2,7 +2,9 @@
 package ChatServer
 
 import (
+	"Firedb"
 	"bufio"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -32,16 +34,17 @@ type UserRelation struct {
 }
 
 type ChatServer struct {
-	ID       int                  //服务器ID
-	Port     int                  //监听Client端口号
-	Host     string               //host地址
-	UserList map[net.Conn]*Client //用户列表
-	//ChannlList       map[int]chan byte    //通道列表
-	//ChannlList_Count []int                //统计Channlist_count里面各个Channl的用户数
-	DataChannl     chan byte //中转接受数据
+	ID             int                  //服务器ID
+	Port           int                  //监听Client端口号
+	Host           string               //host地址
+	UserList       map[net.Conn]*Client //用户列表
+	AccountList    map[uint64]net.Conn  //account 列表
+	NameList       map[string]net.Conn  //name列表
+	DataChannl     chan byte            //中转接受数据
 	ChatConfigData map[string]string
 	RecDataSize    uint64
 	AckDataSize    uint64
+	DB             *sql.DB //character数据库
 }
 
 func (this *ChatServer) processConf(args []string) {
@@ -155,41 +158,21 @@ func (this *ChatServer) newClient(n net.Conn) {
 	}()
 }
 
-func (this *Client) ClientMsgProcess() {
-	fmt.Println("In ClientMsgProcess...")
-	select {
-	case buf := <-this.RecMsg:
-		{
-			fmt.Println("In <-this.RecMsg...")
-			fmt.Println(buf)
-			//this.SendToClient(buf)
-			fmt.Println("Out <-this.RecMsg...")
-		}
-	case data := <-this.AckMsg:
-		{
-			fmt.Println("In <-this.AckMsg...")
-			fmt.Println("data:", data)
-			buf := []byte(data)
-			n, err := this.Client_Socket.Write(buf)
-			if err != nil {
-				if err != io.EOF {
-					return
-				}
-			}
-			fmt.Println("Ack len: ", n)
-			if n != 0 {
-				this.ChatServer.AckDataSize += uint64(n)
-			}
-			fmt.Println("In <-this.AckMsg...")
-		}
+func (this *ChatServer) SendToOtherByAccount(account uint64, buf string) {
+
+}
+
+func (this *ChatServer) SendToOtherByName(name string, buf string) {
+
+}
+
+func (this *ChatServer) InitDB(user, pw, DBname, addr, host, param string) {
+	var err error
+	this.DB, err = Firedb.InitDB("mysql", user, pw, DBname, addr, host, param)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 }
-
-func (this *Client) SendToClient(buf string) {
-	this.AckMsg <- buf
-	this.ClientMsgProcess()
-}
-
-func (this *ChatServer) InitDB(addr string, host string, DBname string) {}
 
 func (this *ChatServer) ServerMsgProcess() {}
