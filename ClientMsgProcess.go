@@ -2,6 +2,7 @@
 package ChatServer
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 )
@@ -11,9 +12,17 @@ func (this *Client) ClientMsgProcess() {
 	select {
 	case buf := <-this.RecMsg:
 		{
+			buffer := []byte(buf)
+			var Head Msg
+			err := json.Unmarshal(buffer, &Head)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			this.ProcessMsg(buffer, &Head)
+
 			fmt.Println("In <-this.RecMsg...")
 			fmt.Println(buf)
-			//this.SendToClient(buf)
 			fmt.Println("Out <-this.RecMsg...")
 		}
 	case data := <-this.AckMsg:
@@ -36,7 +45,23 @@ func (this *Client) ClientMsgProcess() {
 	}
 }
 
-func (this *Client) SendToSelfClient(buf string) {
-	this.AckMsg <- buf
+func (this *Client) SendToSelfClient(buf []byte) {
+	data := string(buf)
+	this.AckMsg <- data
 	this.ClientMsgProcess()
+}
+
+func (this *Client) MsgToJson(MsgData interface{}) ([]byte, int) {
+	buf, err := json.Marshal(MsgData)
+	if err != nil {
+		fmt.Println(err)
+		return nil, 0
+	}
+	length := len(buf)
+
+	return buf, length
+}
+
+func (this *Client) ProcessMsg(data []byte, Head *Msg) {
+	//length 取出后吧Msg的length设置为0然后从新获取然后作比较
 }

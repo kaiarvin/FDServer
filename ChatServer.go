@@ -2,14 +2,13 @@
 package ChatServer
 
 import (
-	"Firedb"
 	"bufio"
-	"database/sql"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
+	"qbs"
 	"strings"
 )
 
@@ -44,7 +43,7 @@ type ChatServer struct {
 	ChatConfigData map[string]string
 	RecDataSize    uint64
 	AckDataSize    uint64
-	DB             *sql.DB //character数据库
+	DB             *qbs.Qbs //character数据库
 }
 
 func (this *ChatServer) processConf(args []string) {
@@ -166,13 +165,17 @@ func (this *ChatServer) SendToOtherByName(name string, buf string) {
 
 }
 
-func (this *ChatServer) InitDB(user, pw, DBname, addr, host, param string) {
-	var err error
-	this.DB, err = Firedb.InitDB("mysql", user, pw, DBname, addr, host, param)
+func (this *ChatServer) InitDB(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) (*qbs.Qbs, error) {
+	cnd := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
+	fmt.Println(cnd)
+	qbs.Register(dbtype, cnd, dbname, qbs.NewMysql())
+	q, err := qbs.GetQbs()
+
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil, err
 	}
+	return q, nil
 }
 
 func (this *ChatServer) ServerMsgProcess() {}
