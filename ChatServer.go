@@ -12,26 +12,6 @@ import (
 	"strings"
 )
 
-type Client struct {
-	AccountID     int
-	Name          string
-	Icon          int
-	Level         int
-	Area          int
-	Viplevel      int
-	IsLive        bool
-	RecMsg        chan string
-	AckMsg        chan string
-	ChatServer    *ChatServer
-	Client_Socket net.Conn
-	UserRelation
-}
-
-type UserRelation struct {
-	FriendInfo map[uint64]string
-	IgnorID    map[uint64]string
-}
-
 type ChatServer struct {
 	ID             int                  //服务器ID
 	Port           int                  //监听Client端口号
@@ -125,9 +105,8 @@ func (this *ChatServer) newClient(n net.Conn) {
 	this.UserList[n] = client
 	fmt.Println(client)
 	fmt.Println("UserList: ", len(this.UserList))
-	//return
-	//创建接受发送线程
 
+	//创建接受发送线程
 	go func() {
 		var buf []byte
 		for {
@@ -165,17 +144,18 @@ func (this *ChatServer) SendToOtherByName(name string, buf string) {
 
 }
 
-func (this *ChatServer) InitDB(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) (*qbs.Qbs, error) {
-	cnd := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
-	fmt.Println(cnd)
-	qbs.Register(dbtype, cnd, dbname, qbs.NewMysql())
-	q, err := qbs.GetQbs()
+func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
+	dsn := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
+	fmt.Println(dsn)
 
-	if err != nil {
+	q, err := DBInit(dbtype, dsn)
+
+	if nil != err {
 		fmt.Println(err)
-		return nil, err
+		return err
 	}
-	return q, nil
+	this.DB = q
+	return nil
 }
 
 func (this *ChatServer) ServerMsgProcess() {}

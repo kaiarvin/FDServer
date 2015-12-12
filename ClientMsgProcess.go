@@ -5,7 +5,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 )
+
+type Client struct {
+	AccountID     int
+	Name          string
+	Icon          int
+	Level         int
+	Area          int
+	Viplevel      int
+	IsLive        bool
+	RecMsg        chan string
+	AckMsg        chan string
+	ChatServer    *ChatServer
+	Client_Socket net.Conn
+	UserRelation
+}
+
+type UserRelation struct {
+	FriendInfo map[uint64]string
+	IgnorID    map[uint64]string
+}
 
 func (this *Client) ClientMsgProcess() {
 	fmt.Println("In ClientMsgProcess...")
