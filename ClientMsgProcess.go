@@ -66,10 +66,26 @@ func (this *Client) ClientMsgProcess() {
 	}
 }
 
-func (this *Client) SendToSelfClient(buf []byte) {
+func (this *Client) SendDataToChann(buf []byte) {
 	data := string(buf)
 	this.AckMsg <- data
 	this.ClientMsgProcess()
+}
+
+func (this *Client) SendToSlef(buf []byte) {
+	this.SendDataToChann(buf)
+}
+
+func (this *Client) SendToOtherByAccount(account uint64, buf []byte) {
+	conn := this.ChatServer.AccountList[account]
+	cl := this.ChatServer.UserList[conn]
+	cl.SendDataToChann(buf)
+}
+
+func (this *Client) SendToOtherByName(name string, buf []byte) {
+	conn := this.ChatServer.NameList[name]
+	cl := this.ChatServer.UserList[conn]
+	cl.SendDataToChann(buf)
 }
 
 func (this *Client) MsgToJson(MsgData interface{}) ([]byte, int) {

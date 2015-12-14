@@ -6,7 +6,7 @@ import (
 	"qbs"
 )
 
-func DBInit(dbtype, dsn string) (*qbs.Qbs, error) {
+func DBInit(dbtype, dsn, dbname string) (*qbs.Qbs, error) {
 	qbs.Register(dbtype, dsn, dbname, qbs.NewMysql())
 	q, err := qbs.GetQbs()
 
@@ -16,5 +16,3 @@ func DBInit(dbtype, dsn string) (*qbs.Qbs, error) {
 	}
 	return q, nil
 }
-
-func FindData()

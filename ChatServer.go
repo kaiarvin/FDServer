@@ -81,7 +81,21 @@ func (this *ChatServer) InitServer() error {
 		fmt.Println(err)
 		return err
 	}
-	//return nil
+
+	DBType := this.ChatConfigData["ChatDBType"]
+	DBUser := this.ChatConfigData["ChatDBUser"]
+	DBPw := this.ChatConfigData["ChatDBPw"]
+	DBHost := this.ChatConfigData["ChatDBHost"]
+	DBPort := this.ChatConfigData["ChatDBPort"]
+	DBName := this.ChatConfigData["ChatDBName"]
+	DBParam := this.ChatConfigData["ChatDBParam"]
+	dberr := this.InitQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
+	if dberr != nil {
+		fmt.Println(dberr)
+		return err
+	}
+	defer this.GetServerQbs().Close()
+
 	//监听连接
 	for {
 		fmt.Println("Wait Accept.")
@@ -136,19 +150,13 @@ func (this *ChatServer) newClient(n net.Conn) {
 	}()
 }
 
-func (this *ChatServer) SendToOtherByAccount(account uint64, buf string) {
 
-}
-
-func (this *ChatServer) SendToOtherByName(name string, buf string) {
-
-}
 
 func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
 	dsn := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
 	fmt.Println(dsn)
 
-	q, err := DBInit(dbtype, dsn)
+	q, err := DBInit(dbtype, dsn, dbname)
 
 	if nil != err {
 		fmt.Println(err)
@@ -159,3 +167,7 @@ func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, para
 }
 
 func (this *ChatServer) ServerMsgProcess() {}
+
+func (this *ChatServer) GetServerQbs() *qbs.Qbs {
+	return this.DB
+}
