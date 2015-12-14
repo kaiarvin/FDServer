@@ -150,8 +150,6 @@ func (this *ChatServer) newClient(n net.Conn) {
 	}()
 }
 
-
-
 func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
 	dsn := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
 	fmt.Println(dsn)
@@ -166,8 +164,8 @@ func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, para
 	return nil
 }
 
-func (this *ChatServer) ServerMsgProcess() {}
-
 func (this *ChatServer) GetServerQbs() *qbs.Qbs {
 	return this.DB
 }
+
+func (this *ChatServer) ServerMsgProcess() {}

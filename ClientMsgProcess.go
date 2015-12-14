@@ -2,7 +2,6 @@
 package ChatServer
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -33,14 +32,13 @@ func (this *Client) ClientMsgProcess() {
 	select {
 	case buf := <-this.RecMsg:
 		{
-			buffer := []byte(buf)
-			var Head Msg
-			err := json.Unmarshal(buffer, &Head)
-			if err != nil {
-				fmt.Println(err)
+			data := []byte(buf)
+
+			buf, Head := MsgJsonDecode(data)
+			if buf == nil || Head == nil {
 				return
 			}
-			this.ProcessMsg(buffer, &Head)
+			this.ProcessMsg(buf, Head)
 
 			fmt.Println("In <-this.RecMsg...")
 			fmt.Println(buf)
@@ -72,33 +70,38 @@ func (this *Client) SendDataToChann(buf []byte) {
 	this.ClientMsgProcess()
 }
 
-func (this *Client) SendToSlef(buf []byte) {
+func (this *Client) SendToSlef(msg interface{}) {
+	buf, err := MsgJsonEncode(msg)
+	if err {
+		return
+	}
 	this.SendDataToChann(buf)
 }
 
-func (this *Client) SendToOtherByAccount(account uint64, buf []byte) {
+func (this *Client) SendToOtherByAccount(account uint64, msg interface{}) {
 	conn := this.ChatServer.AccountList[account]
 	cl := this.ChatServer.UserList[conn]
+
+	buf, err := MsgJsonEncode(msg)
+	if err {
+		return
+	}
+
 	cl.SendDataToChann(buf)
 }
 
-func (this *Client) SendToOtherByName(name string, buf []byte) {
+func (this *Client) SendToOtherByName(name string, msg interface{}) {
 	conn := this.ChatServer.NameList[name]
 	cl := this.ChatServer.UserList[conn]
+
+	buf, err := MsgJsonEncode(msg)
+	if err {
+		return
+	}
+
 	cl.SendDataToChann(buf)
 }
 
-func (this *Client) MsgToJson(MsgData interface{}) ([]byte, int) {
-	buf, err := json.Marshal(MsgData)
-	if err != nil {
-		fmt.Println(err)
-		return nil, 0
-	}
-	length := len(buf)
-
-	return buf, length
-}
-
-func (this *Client) ProcessMsg(data []byte, Head *Msg) {
+func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 	//length 取出后吧Msg的length设置为0然后从新获取然后作比较
 }
