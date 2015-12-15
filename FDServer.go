@@ -33,7 +33,7 @@ func (this *Server) processConf(args []string) {
 	} else {
 		this.ChatConfigData[args[0]] = args[1]
 	}
-	fmt.Println(args, this.ChatConfigData)
+	//	fmt.Println(args, this.ChatConfigData)
 }
 
 func (this *Server) ReadConf(name string) (err error) {
@@ -73,6 +73,12 @@ func (this *Server) initChatServerData() {
 }
 
 func (this *Server) InitServer() error {
+	err := this.ReadConf("./Config/Server.conf")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	serverhost := ":" + this.ChatConfigData["ChatPort"]
 
 	server, err := net.Listen("tcp4", serverhost)
@@ -97,31 +103,42 @@ func (this *Server) InitServer() error {
 		return err
 	}
 	defer this.GetServerQbs().Close()
-
+	//监听连接
 	go func() {
 		for {
-			r := bufio.NewReader(os.Stdin)
-			line, _, _ := r.ReadLine()
+			fmt.Println("Wait Accept.")
+			client_socket, err := server.Accept()
+			if err != nil {
+				return
+			}
+			this.newClient(client_socket)
+			fmt.Println("Accept success")
+		}
+
+	}()
+
+	for {
+		if this.IsCloseServer {
+			return nil
+		}
+		fmt.Println("Input Command:\n gm  . Game Command\n sys . Server Command\n")
+		r := bufio.NewReader(os.Stdin)
+		line, _, _ := r.ReadLine()
+		cmd := string(line)
+		switch cmd {
+		case "gm":
+		case "sys":
+			fmt.Println("Input Server Command:")
+			r = bufio.NewReader(os.Stdin)
+			line, _, _ = r.ReadLine()
 			cp := strings.ToUpper(string(line))
 			if cp == "CLOSE" {
 				this.IsCloseServer = true
 			}
-		}
-	}()
-	//监听连接
-	for {
+		default:
 
-		if this.IsCloseServer {
-			return nil
 		}
 
-		fmt.Println("Wait Accept.")
-		client_socket, err := server.Accept()
-		if err != nil {
-			return err
-		}
-		this.newClient(client_socket)
-		fmt.Println("Accept success")
 	}
 	fmt.Println("End......")
 
@@ -134,8 +151,8 @@ func (this *Server) newClient(n net.Conn) {
 	client.AckMsg = make(chan string, 1024)
 
 	this.UserList[n] = client
-	fmt.Println(client)
-	fmt.Println("UserList: ", len(this.UserList))
+	//	fmt.Println(client)
+	//	fmt.Println("UserList: ", len(this.UserList))
 
 	//创建接受发送线程
 	go func() {
@@ -169,7 +186,6 @@ func (this *Server) newClient(n net.Conn) {
 
 func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
 	dsn := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
-	fmt.Println(dsn)
 
 	q, err := DBInit(dbtype, dsn, dbname)
 
