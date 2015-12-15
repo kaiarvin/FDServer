@@ -1,6 +1,6 @@
-// ChatServer project doc.go
+// FDServer project doc.go
 
 /*
-ChatServer document
+FDServer document
 */
-package ChatServer
+package FDServer

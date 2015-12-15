@@ -1,5 +1,5 @@
 // ChatServer
-package ChatServer
+package FDServer
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-type ChatServer struct {
+type Server struct {
 	ID             int                  //服务器ID
 	Port           int                  //监听Client端口号
 	Host           string               //host地址
@@ -24,9 +24,10 @@ type ChatServer struct {
 	RecDataSize    uint64
 	AckDataSize    uint64
 	DB             *qbs.Qbs //character数据库
+	IsCloseServer  bool
 }
 
-func (this *ChatServer) processConf(args []string) {
+func (this *Server) processConf(args []string) {
 	if len(args) != 2 {
 		return
 	} else {
@@ -35,7 +36,7 @@ func (this *ChatServer) processConf(args []string) {
 	fmt.Println(args, this.ChatConfigData)
 }
 
-func (this *ChatServer) ReadConf(name string) (err error) {
+func (this *Server) ReadConf(name string) (err error) {
 	this.initChatServerData()
 	f, err := os.Open(name)
 	if err != nil {
@@ -60,17 +61,18 @@ func (this *ChatServer) ReadConf(name string) (err error) {
 	return nil
 }
 
-func (this *ChatServer) initChatServerData() {
+func (this *Server) initChatServerData() {
 	this.ID = 0
 	this.Port = 0
 	this.Host = ""
 	this.DataChannl = make(chan byte, 1024)
 	this.ChatConfigData = make(map[string]string, 0)
 	this.UserList = make(map[net.Conn]*Client, 100)
+	this.IsCloseServer = false
 	//this.ChannlList = make(map[int]chan byte, 0)
 }
 
-func (this *ChatServer) InitServer() error {
+func (this *Server) InitServer() error {
 	serverhost := ":" + this.ChatConfigData["ChatPort"]
 
 	server, err := net.Listen("tcp4", serverhost)
@@ -89,15 +91,30 @@ func (this *ChatServer) InitServer() error {
 	DBPort := this.ChatConfigData["ChatDBPort"]
 	DBName := this.ChatConfigData["ChatDBName"]
 	DBParam := this.ChatConfigData["ChatDBParam"]
-	dberr := this.InitQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
+	dberr := this.initQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
 	if dberr != nil {
 		fmt.Println(dberr)
 		return err
 	}
 	defer this.GetServerQbs().Close()
 
+	go func() {
+		for {
+			r := bufio.NewReader(os.Stdin)
+			line, _, _ := r.ReadLine()
+			cp := strings.ToUpper(string(line))
+			if cp == "CLOSE" {
+				this.IsCloseServer = true
+			}
+		}
+	}()
 	//监听连接
 	for {
+
+		if this.IsCloseServer {
+			return nil
+		}
+
 		fmt.Println("Wait Accept.")
 		client_socket, err := server.Accept()
 		if err != nil {
@@ -111,8 +128,8 @@ func (this *ChatServer) InitServer() error {
 	return nil
 }
 
-func (this *ChatServer) newClient(n net.Conn) {
-	client := &Client{IsLive: true, ChatServer: this, Client_Socket: n}
+func (this *Server) newClient(n net.Conn) {
+	client := &Client{IsLive: true, Server: this, Client_Socket: n}
 	client.RecMsg = make(chan string, 1024)
 	client.AckMsg = make(chan string, 1024)
 
@@ -143,14 +160,14 @@ func (this *ChatServer) newClient(n net.Conn) {
 				fmt.Println("Rec len: ", n)
 
 				client.RecMsg <- data
-				client.ChatServer.RecDataSize += uint64(n)
+				client.Server.RecDataSize += uint64(n)
 				client.ClientMsgProcess()
 			}
 		}
 	}()
 }
 
-func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
+func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
 	dsn := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
 	fmt.Println(dsn)
 
@@ -164,8 +181,6 @@ func (this *ChatServer) InitQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, para
 	return nil
 }
 
-func (this *ChatServer) GetServerQbs() *qbs.Qbs {
+func (this *Server) GetServerQbs() *qbs.Qbs {
 	return this.DB
 }
-
-func (this *ChatServer) ServerMsgProcess() {}

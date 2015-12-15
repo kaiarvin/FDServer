@@ -1,8 +1,9 @@
 // DataProcess
-package ChatServer
+package FDServer
 
 import (
 	"fmt"
+	_ "mysql"
 	"qbs"
 )
 

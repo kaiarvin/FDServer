@@ -1,9 +1,10 @@
 // MsgCommn
-package ChatServer
+package FDServer
 
 import (
 	"encoding/json"
 	"reflect"
+	"time"
 )
 
 const (
@@ -51,6 +52,13 @@ func MsgJsonDecode(data []byte) ([]byte, *MsgHead) {
 	return data, Head
 }
 
+func MsgByteToJson(buf []byte, msg interface{}) {
+	err := json.Unmarshal(buf, msg)
+	if err != nil {
+		return
+	}
+}
+
 type MsgHead struct {
 	Id     int
 	Length int64
@@ -60,4 +68,10 @@ type TestMsg struct {
 	MsgHead
 	A int
 	B string
+}
+
+type HeartBeat struct {
+	MsgHead
+	RecTime time.Time
+	AckTime time.Time
 }

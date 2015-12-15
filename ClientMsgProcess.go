@@ -1,5 +1,5 @@
 // ClientMsgProcess
-package ChatServer
+package FDServer
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ type Client struct {
 	IsLive        bool
 	RecMsg        chan string
 	AckMsg        chan string
-	ChatServer    *ChatServer
+	Server        *Server
 	Client_Socket net.Conn
 	UserRelation
 }
@@ -41,7 +41,7 @@ func (this *Client) ClientMsgProcess() {
 			this.ProcessMsg(buf, Head)
 
 			fmt.Println("In <-this.RecMsg...")
-			fmt.Println(buf)
+			fmt.Println(Head, ":", buf)
 			fmt.Println("Out <-this.RecMsg...")
 		}
 	case data := <-this.AckMsg:
@@ -57,7 +57,7 @@ func (this *Client) ClientMsgProcess() {
 			}
 			fmt.Println("Ack len: ", n)
 			if n != 0 {
-				this.ChatServer.AckDataSize += uint64(n)
+				this.Server.AckDataSize += uint64(n)
 			}
 			fmt.Println("In <-this.AckMsg...")
 		}
@@ -79,8 +79,8 @@ func (this *Client) SendToSlef(msg interface{}) {
 }
 
 func (this *Client) SendToOtherByAccount(account uint64, msg interface{}) {
-	conn := this.ChatServer.AccountList[account]
-	cl := this.ChatServer.UserList[conn]
+	conn := this.Server.AccountList[account]
+	cl := this.Server.UserList[conn]
 
 	buf, err := MsgJsonEncode(msg)
 	if err {
@@ -91,8 +91,8 @@ func (this *Client) SendToOtherByAccount(account uint64, msg interface{}) {
 }
 
 func (this *Client) SendToOtherByName(name string, msg interface{}) {
-	conn := this.ChatServer.NameList[name]
-	cl := this.ChatServer.UserList[conn]
+	conn := this.Server.NameList[name]
+	cl := this.Server.UserList[conn]
 
 	buf, err := MsgJsonEncode(msg)
 	if err {
@@ -104,4 +104,21 @@ func (this *Client) SendToOtherByName(name string, msg interface{}) {
 
 func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 	//length 取出后吧Msg的length设置为0然后从新获取然后作比较
+	switch Head.Id {
+	case E_NONE:
+		{
+			testMsg := new(TestMsg)
+			MsgByteToJson(data, testMsg)
+
+		}
+	case E_HEARTBEAT:
+		{
+			heartBeat := new(HeartBeat)
+			MsgByteToJson(data, heartBeat)
+		}
+	default:
+		{
+
+		}
+	}
 }

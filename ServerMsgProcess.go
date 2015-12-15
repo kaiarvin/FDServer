@@ -1,2 +1,4 @@
 // ServerMsgProcess
-package ChatServer
+package FDServer
+
+func (this *Server) ServerMsgProcess() {}

@@ -11,29 +11,13 @@
 //	fmt.Println("Hello World!  123123123")
 //	fmt.Println("This's ok!!!")
 //}
-package ChatServer
+package FDServer
 
 import "testing"
 
 func TestServer(t *testing.T) {
 	var s ChatServer
 	s.ReadConf("./ChatServer.conf")
-
-	//	if port, ok := s.ChatConfigData["ChatPort"]; ok {
-	//		if a, err := strconv.Atoi(port); err != nil {
-	//			fmt.Println("Conve ChatPort to int Error!")
-	//			return
-	//		} else {
-	//			s.Port = a
-	//			fmt.Println(a)
-	//		}
-	//	} else {
-	//		fmt.Println("Cant find ChatPort")
-	//	}
-
-	//	fmt.Println(s.Port)
-
-	//	fmt.Println("ChatServer .stop")
 
 	s.InitServer()
 }
