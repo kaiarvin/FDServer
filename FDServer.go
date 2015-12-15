@@ -162,6 +162,8 @@ func (this *Server) newClient(n net.Conn) {
 			buf = make([]byte, 1024)
 			n, err := client.Client_Socket.Read(buf)
 			defer client.Client_Socket.Close()
+			defer close(client.RecMsg)
+			defer close(client.AckMsg)
 
 			if err != nil {
 				if err != io.EOF {
