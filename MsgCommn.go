@@ -14,6 +14,7 @@ const (
 	E_REGIST
 	E_ENTERSERVER
 	E_EXITSERVER
+	E_CHATDATA
 )
 
 func MsgJsonEncode(msg interface{}) ([]byte, bool) {
@@ -97,4 +98,13 @@ type UserLogout struct {
 	MsgHead
 	AccountID int
 	Name      string
+}
+
+type ChatData struct {
+	MsgHead
+	FromAccountID int
+	ToAccountID   int
+	FromName      string
+	ToName        string
+	Data          string
 }

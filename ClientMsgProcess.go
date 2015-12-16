@@ -131,6 +131,12 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 			MsgByteToJson(data, enter)
 			fmt.Println(enter)
 		}
+	case E_CHATDATA:
+		{
+			say := new(ChatData)
+			MsgByteToJson(data, say)
+			fmt.Println(enter)
+		}
 	case E_EXITSERVER:
 		this.CloseClient()
 	default:
