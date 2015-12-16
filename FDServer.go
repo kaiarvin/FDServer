@@ -13,18 +13,19 @@ import (
 )
 
 type Server struct {
-	ID             int                  //服务器ID
-	Port           int                  //监听Client端口号
-	Host           string               //host地址
-	UserList       map[net.Conn]*Client //用户列表
-	AccountList    map[uint64]net.Conn  //account 列表
-	NameList       map[string]net.Conn  //name列表
-	DataChannl     chan byte            //中转接受数据
-	ChatConfigData map[string]string
-	RecDataSize    uint64
-	AckDataSize    uint64
-	DB             *qbs.Qbs //character数据库
-	IsCloseServer  bool
+	ID              int                  //服务器ID
+	Port            int                  //监听Client端口号
+	Host            string               //host地址
+	UserList        map[net.Conn]*Client //用户列表
+	AccountList     map[int]net.Conn     //account 列表
+	NameList        map[string]net.Conn  //name列表
+	AccountNameList map[int]string       //account&name列表
+	DataChannl      chan byte            //中转接受数据
+	ChatConfigData  map[string]string
+	RecDataSize     uint64
+	AckDataSize     uint64
+	DB              *qbs.Qbs //character数据库
+	IsCloseServer   bool
 }
 
 func (this *Server) processConf(args []string) {
@@ -111,7 +112,7 @@ func (this *Server) InitServer() error {
 			if err != nil {
 				return
 			}
-			this.newClient(client_socket)
+			this.newClient(&client_socket)
 			fmt.Println("Accept success")
 		}
 
@@ -134,6 +135,8 @@ func (this *Server) InitServer() error {
 			cp := strings.ToUpper(string(line))
 			if cp == "CLOSE" {
 				this.IsCloseServer = true
+			} else if cp == "LIST" {
+				fmt.Println("LIST:", this.UserList)
 			}
 		default:
 
@@ -145,12 +148,14 @@ func (this *Server) InitServer() error {
 	return nil
 }
 
-func (this *Server) newClient(n net.Conn) {
-	client := &Client{IsLive: true, Server: this, Client_Socket: n}
+func (this *Server) newClient(n *net.Conn) {
+	client := &Client{IsLive: true, Server: this, Client_Socket: *n}
 	client.RecMsg = make(chan string, 1024)
 	client.AckMsg = make(chan string, 1024)
 
-	this.UserList[n] = client
+	this.UserList[*n] = client
+	fmt.Println(this.UserList)
+	client.IsLive = true
 	//	fmt.Println(client)
 	//	fmt.Println("UserList: ", len(this.UserList))
 
@@ -158,24 +163,29 @@ func (this *Server) newClient(n net.Conn) {
 	go func() {
 		var buf []byte
 		for {
+			if this.IsCloseServer || !client.IsLive {
+
+				return
+			}
 			fmt.Println("Socket Waiting Read.")
 			buf = make([]byte, 1024)
 			n, err := client.Client_Socket.Read(buf)
-			defer client.Client_Socket.Close()
+
 			defer close(client.RecMsg)
 			defer close(client.AckMsg)
+			defer client.Client_Socket.Close()
 
 			if err != nil {
 				if err != io.EOF {
 					fmt.Println("Read Msg:", err)
 					client.IsLive = false
-					break
+					return
 				}
 			}
 
 			if n != 0 {
 				data := string(buf[:n])
-				fmt.Println(data)
+				fmt.Println("Rec data: ", data)
 				fmt.Println("Rec len: ", n)
 
 				client.RecMsg <- data
@@ -201,4 +211,21 @@ func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param st
 
 func (this *Server) GetServerQbs() *qbs.Qbs {
 	return this.DB
+}
+
+func (this *Server) CleanExitUser(conn *net.Conn) {
+	cl := this.UserList[*conn]
+	fmt.Println("EXIT CLIENT:", cl)
+	var ack UserLogout
+	ack.Id = E_EXITSERVER
+	ack.AccountID = cl.AccountID
+	ack.Name = cl.Name
+	delete(this.AccountList, cl.AccountID)
+	delete(this.NameList, cl.Name)
+	delete(this.AccountNameList, cl.AccountID)
+	delete(this.UserList, *conn)
+
+	for _, client := range this.UserList {
+		client.SendToSlef(ack)
+	}
 }

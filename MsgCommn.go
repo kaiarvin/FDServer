@@ -3,6 +3,7 @@ package FDServer
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"time"
 )
@@ -10,6 +11,9 @@ import (
 const (
 	E_NONE = iota
 	E_HEARTBEAT
+	E_REGIST
+	E_ENTERSERVER
+	E_EXITSERVER
 )
 
 func MsgJsonEncode(msg interface{}) ([]byte, bool) {
@@ -39,13 +43,13 @@ func MsgJsonDecode(data []byte) ([]byte, *MsgHead) {
 		return nil, nil
 	}
 
-	cpzero := Head
+	cpzero := *Head
 	cpzero.Length = 0
 	cpstr, err := json.Marshal(Head)
 	cpzerostr, err := json.Marshal(cpzero)
 	lensub := len(cpstr) - len(cpzerostr)
-
 	if Head.Length != int64(len(data)-lensub) {
+		fmt.Println("Head.Length:", Head.Length, "len:", int64(len(data)-lensub))
 		return nil, nil
 	}
 
@@ -74,4 +78,23 @@ type HeartBeat struct {
 	MsgHead
 	RecTime time.Time
 	AckTime time.Time
+}
+
+type UserRegist struct {
+	MsgHead
+	Uname string
+	Pw    string
+	Gname string
+}
+
+type UserEnterServer struct {
+	MsgHead
+	Uname string
+	Pw    string
+}
+
+type UserLogout struct {
+	MsgHead
+	AccountID int
+	Name      string
 }

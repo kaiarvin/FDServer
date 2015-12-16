@@ -32,15 +32,16 @@ func (this *Client) ClientMsgProcess() {
 	select {
 	case buf := <-this.RecMsg:
 		{
+			fmt.Println("In <-this.RecMsg...")
 			data := []byte(buf)
 
 			buf, Head := MsgJsonDecode(data)
 			if buf == nil || Head == nil {
+				fmt.Print("RecMsg buf==", buf, "||", "Head==", Head)
 				return
 			}
 			this.ProcessMsg(buf, Head)
 
-			fmt.Println("In <-this.RecMsg...")
 			fmt.Println(Head, ":", buf)
 			fmt.Println("Out <-this.RecMsg...")
 		}
@@ -78,7 +79,7 @@ func (this *Client) SendToSlef(msg interface{}) {
 	this.SendDataToChann(buf)
 }
 
-func (this *Client) SendToOtherByAccount(account uint64, msg interface{}) {
+func (this *Client) SendToOtherByAccount(account int, msg interface{}) {
 	conn := this.Server.AccountList[account]
 	cl := this.Server.UserList[conn]
 
@@ -109,16 +110,37 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 		{
 			testMsg := new(TestMsg)
 			MsgByteToJson(data, testMsg)
+			fmt.Println(testMsg)
 
 		}
 	case E_HEARTBEAT:
 		{
 			heartBeat := new(HeartBeat)
 			MsgByteToJson(data, heartBeat)
+			fmt.Println(heartBeat)
 		}
+	case E_REGIST:
+		{
+			regist := new(UserRegist)
+			MsgByteToJson(data, regist)
+			fmt.Println(regist)
+		}
+	case E_ENTERSERVER:
+		{
+			enter := new(UserEnterServer)
+			MsgByteToJson(data, enter)
+			fmt.Println(enter)
+		}
+	case E_EXITSERVER:
+		this.CloseClient()
 	default:
 		{
 
 		}
 	}
+}
+
+func (this *Client) CloseClient() {
+	this.Server.CleanExitUser(&this.Client_Socket)
+	this.IsLive = false
 }
