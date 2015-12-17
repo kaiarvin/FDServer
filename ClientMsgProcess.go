@@ -123,7 +123,9 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 		{
 			regist := new(UserRegist)
 			MsgByteToJson(data, regist)
-			fmt.Println(regist)
+			fmt.Println("REGIST: ", regist)
+			account := &Account{UserName: regist.Uname, UserPw: regist.Pw}
+			ProcessRegistAccountId(this.Server.DB, account)
 		}
 	case E_ENTERSERVER:
 		{
@@ -135,7 +137,7 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 		{
 			say := new(ChatData)
 			MsgByteToJson(data, say)
-			fmt.Println(enter)
+			fmt.Println(say)
 		}
 	case E_EXITSERVER:
 		this.CloseClient()

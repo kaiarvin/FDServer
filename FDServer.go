@@ -164,22 +164,22 @@ func (this *Server) newClient(n *net.Conn) {
 		var buf []byte
 		for {
 			if this.IsCloseServer || !client.IsLive {
-
+				this.CleanExitUser(&client.Client_Socket)
+				client.Client_Socket.Close()
+				close(client.RecMsg)
+				close(client.AckMsg)
 				return
 			}
+
 			fmt.Println("Socket Waiting Read.")
 			buf = make([]byte, 1024)
 			n, err := client.Client_Socket.Read(buf)
-
-			defer close(client.RecMsg)
-			defer close(client.AckMsg)
-			defer client.Client_Socket.Close()
 
 			if err != nil {
 				if err != io.EOF {
 					fmt.Println("Read Msg:", err)
 					client.IsLive = false
-					return
+					continue
 				}
 			}
 
