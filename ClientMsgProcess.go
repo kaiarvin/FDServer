@@ -10,7 +10,7 @@ import (
 type Client struct {
 	AccountID     int
 	Name          string
-	Icon          int
+	Sex           int8
 	Level         int
 	Area          int
 	Viplevel      int
@@ -41,14 +41,11 @@ func (this *Client) ClientMsgProcess() {
 				return
 			}
 			this.ProcessMsg(buf, Head)
-
-			fmt.Println(Head, ":", buf)
 			fmt.Println("Out <-this.RecMsg...")
 		}
 	case data := <-this.AckMsg:
 		{
 			fmt.Println("In <-this.AckMsg...")
-			fmt.Println("data:", data)
 			buf := []byte(data)
 			n, err := this.Client_Socket.Write(buf)
 			if err != nil {
@@ -60,7 +57,7 @@ func (this *Client) ClientMsgProcess() {
 			if n != 0 {
 				this.Server.AckDataSize += uint64(n)
 			}
-			fmt.Println("In <-this.AckMsg...")
+			fmt.Println("Out <-this.AckMsg...")
 		}
 	}
 }
@@ -106,40 +103,54 @@ func (this *Client) SendToOtherByName(name string, msg interface{}) {
 func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 	//length 取出后吧Msg的length设置为0然后从新获取然后作比较
 	switch Head.Id {
-	case E_NONE:
+	case E_REQ_NONE:
 		{
 			testMsg := new(TestMsg)
 			MsgByteToJson(data, testMsg)
 			fmt.Println(testMsg)
 
 		}
-	case E_HEARTBEAT:
+	case E_REQ_PING:
 		{
 			heartBeat := new(HeartBeat)
 			MsgByteToJson(data, heartBeat)
 			fmt.Println(heartBeat)
 		}
-	case E_REGIST:
+	case E_REQ_REGIST:
 		{
-			regist := new(UserRegist)
+			regist := new(ReqUserRegist)
 			MsgByteToJson(data, regist)
-			fmt.Println("REGIST: ", regist)
 			account := &Account{UserName: regist.Uname, UserPw: regist.Pw}
-			ProcessRegistAccountId(this.Server.DB, account)
+			rel := ProcessRegistAccountId(this.Server.DB, account, regist.Gname)
+
+			ack := new(AckUserRegist)
+			ack.Id = E_ACK_REGIST
+			ack.Result = rel
+
+			this.SendToSlef(ack)
 		}
-	case E_ENTERSERVER:
+	case E_REQ_ENTERSERVER:
 		{
-			enter := new(UserEnterServer)
+			enter := new(ReqUserEnterServer)
 			MsgByteToJson(data, enter)
 			fmt.Println(enter)
+			rel := this.EnterWorld(enter)
+			if rel {
+				ack := new(AckUserEnterServer)
+				ack.Id = this.AccountID
+				ack.Gname = this.Name
+				ack.Level = this.Level
+				ack.Sex = this.Sex
+				ack.UserList = this.Server.AccountNameList
+			}
 		}
-	case E_CHATDATA:
+	case E_REQ_CHATDATA:
 		{
-			say := new(ChatData)
+			say := new(ReqChatData)
 			MsgByteToJson(data, say)
 			fmt.Println(say)
 		}
-	case E_EXITSERVER:
+	case E_REQ_EXITSERVER:
 		this.CloseClient()
 	default:
 		{
@@ -148,7 +159,24 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 	}
 }
 
+func (this *Client) EnterWorld(data *ReqUserEnterServer) bool {
+	account := CheckUserEnterWorld(this.Server.DB, data)
+	if account == nil || account.Id == 0 {
+		return false
+	}
+
+	if account.UserPw != data.Pw || account.UserName != data.Uname {
+		return false
+	}
+
+	character := GetDBCharacter(this.Server.DB, account.Id)
+	this.AccountID = character.Id
+	this.Level = character.Level
+	this.Name = character.Name
+	this.Sex = character.Sex
+	return true
+}
 func (this *Client) CloseClient() {
-	this.Server.CleanExitUser(&this.Client_Socket)
+	//this.Server.CleanExitUser(&this.Client_Socket)
 	this.IsLive = false
 }

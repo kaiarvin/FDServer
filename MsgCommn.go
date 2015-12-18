@@ -9,12 +9,19 @@ import (
 )
 
 const (
-	E_NONE = iota
-	E_HEARTBEAT
-	E_REGIST
-	E_ENTERSERVER
-	E_EXITSERVER
-	E_CHATDATA
+	E_REQ_NONE = iota
+	E_REQ_PING
+	E_REQ_REGIST
+	E_REQ_ENTERSERVER
+	E_REQ_EXITSERVER
+	E_REQ_CHATDATA
+)
+
+const (
+	E_ACK_NONE = iota
+	E_ACK_PONG
+	E_ACK_REGIST
+	E_ACK_EXIT
 )
 
 func MsgJsonEncode(msg interface{}) ([]byte, bool) {
@@ -81,26 +88,39 @@ type HeartBeat struct {
 	AckTime time.Time
 }
 
-type UserRegist struct {
+type ReqUserRegist struct {
 	MsgHead
 	Uname string
 	Pw    string
 	Gname string
 }
 
-type UserEnterServer struct {
+type AckUserRegist struct {
+	MsgHead
+	Result int
+}
+
+type ReqUserEnterServer struct {
 	MsgHead
 	Uname string
 	Pw    string
 }
 
-type UserLogout struct {
+type AckUserEnterServer struct {
+	MsgHead
+	UserList map[int]string
+	Gname    string
+	Level    int
+	Sex      int8
+}
+
+type ReqUserLogout struct {
 	MsgHead
 	AccountID int
 	Name      string
 }
 
-type ChatData struct {
+type ReqChatData struct {
 	MsgHead
 	FromAccountID int
 	ToAccountID   int

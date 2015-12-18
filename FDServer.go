@@ -216,8 +216,8 @@ func (this *Server) GetServerQbs() *qbs.Qbs {
 func (this *Server) CleanExitUser(conn *net.Conn) {
 	cl := this.UserList[*conn]
 	fmt.Println("EXIT CLIENT:", cl)
-	var ack UserLogout
-	ack.Id = E_EXITSERVER
+	var ack ReqUserLogout
+	ack.Id = E_ACK_EXIT
 	ack.AccountID = cl.AccountID
 	ack.Name = cl.Name
 	delete(this.AccountList, cl.AccountID)
