@@ -21,24 +21,29 @@ const (
 	E_ACK_NONE = iota
 	E_ACK_PONG
 	E_ACK_REGIST
+	E_ACK_ENTERSERVER
 	E_ACK_EXIT
+	E_ACK_CHATDATA
 )
 
 func MsgJsonEncode(msg interface{}) ([]byte, bool) {
 	buf, err := json.Marshal(msg)
 	if err != nil {
+		fmt.Println("MsgJsonEncode Error:", err)
 		return nil, true
 	}
 
 	Length := len(buf)
 	v := reflect.ValueOf(msg).Elem().Field(0).FieldByName("Length")
 	if !v.CanSet() {
+		fmt.Println("MsgJsonEncode Error: Cant Set")
 		return nil, true
 	}
 
 	v.SetInt(int64(Length))
 	buf, err = json.Marshal(msg)
 	if err != nil {
+		fmt.Println("MsgJsonEncode Error:", err)
 		return nil, true
 	}
 	return buf, false
@@ -108,10 +113,11 @@ type ReqUserEnterServer struct {
 
 type AckUserEnterServer struct {
 	MsgHead
-	UserList map[int]string
-	Gname    string
-	Level    int
-	Sex      int8
+	AccountId int
+	UserList  map[string]int
+	Gname     string
+	Level     int
+	Sex       int8
 }
 
 type ReqUserLogout struct {

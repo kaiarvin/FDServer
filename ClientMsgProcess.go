@@ -64,6 +64,7 @@ func (this *Client) ClientMsgProcess() {
 
 func (this *Client) SendDataToChann(buf []byte) {
 	data := string(buf)
+	fmt.Println("SendDataToChann:", data)
 	this.AckMsg <- data
 	this.ClientMsgProcess()
 }
@@ -71,6 +72,7 @@ func (this *Client) SendDataToChann(buf []byte) {
 func (this *Client) SendToSlef(msg interface{}) {
 	buf, err := MsgJsonEncode(msg)
 	if err {
+		fmt.Println("SendToSlef Error:", err)
 		return
 	}
 	this.SendDataToChann(buf)
@@ -135,13 +137,23 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 			MsgByteToJson(data, enter)
 			fmt.Println(enter)
 			rel := this.EnterWorld(enter)
+			fmt.Print("Enter Server:", enter, "Resutl:", rel)
+			ack := new(AckUserEnterServer)
+			ack.Id = E_ACK_ENTERSERVER
 			if rel {
-				ack := new(AckUserEnterServer)
-				ack.Id = this.AccountID
+				this.Server.WritList(this)
+				ack.AccountId = this.AccountID
 				ack.Gname = this.Name
 				ack.Level = this.Level
 				ack.Sex = this.Sex
-				ack.UserList = this.Server.AccountNameList
+				ack.UserList = this.Server.NameAccountList
+				this.SendToSlef(ack)
+				fmt.Print("ACKENTER True:", ack)
+			} else {
+				ack := new(AckUserEnterServer)
+				ack.AccountId = 0
+				this.SendToSlef(ack)
+				fmt.Print("ACKENTER False:", ack)
 			}
 		}
 	case E_REQ_CHATDATA:

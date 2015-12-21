@@ -19,7 +19,7 @@ type Server struct {
 	UserList        map[net.Conn]*Client //用户列表
 	AccountList     map[int]net.Conn     //account 列表
 	NameList        map[string]net.Conn  //name列表
-	AccountNameList map[int]string       //account&name列表
+	NameAccountList map[string]int       //account&name列表
 	DataChannl      chan byte            //中转接受数据
 	ChatConfigData  map[string]string
 	RecDataSize     uint64
@@ -69,6 +69,9 @@ func (this *Server) initChatServerData() {
 	this.DataChannl = make(chan byte, 1024)
 	this.ChatConfigData = make(map[string]string, 0)
 	this.UserList = make(map[net.Conn]*Client, 100)
+	this.NameAccountList = make(map[string]int, 100)
+	this.AccountList = make(map[int]net.Conn, 100)
+	this.NameList = make(map[string]net.Conn, 100)
 	this.IsCloseServer = false
 	//this.ChannlList = make(map[int]chan byte, 0)
 }
@@ -191,6 +194,8 @@ func (this *Server) newClient(n *net.Conn) {
 				client.RecMsg <- data
 				client.Server.RecDataSize += uint64(n)
 				client.ClientMsgProcess()
+			} else {
+				fmt.Println("Rec len: ", n)
 			}
 		}
 	}()
@@ -216,16 +221,22 @@ func (this *Server) GetServerQbs() *qbs.Qbs {
 func (this *Server) CleanExitUser(conn *net.Conn) {
 	cl := this.UserList[*conn]
 	fmt.Println("EXIT CLIENT:", cl)
-	var ack ReqUserLogout
+	ack := new(ReqUserLogout)
 	ack.Id = E_ACK_EXIT
 	ack.AccountID = cl.AccountID
 	ack.Name = cl.Name
 	delete(this.AccountList, cl.AccountID)
 	delete(this.NameList, cl.Name)
-	delete(this.AccountNameList, cl.AccountID)
+	delete(this.NameAccountList, cl.Name)
 	delete(this.UserList, *conn)
 
 	for _, client := range this.UserList {
 		client.SendToSlef(ack)
 	}
+}
+
+func (this *Server) WritList(cl *Client) {
+	this.AccountList[cl.AccountID] = cl.Client_Socket
+	this.NameList[cl.Name] = cl.Client_Socket
+	this.NameAccountList[cl.Name] = cl.AccountID
 }
