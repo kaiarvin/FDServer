@@ -174,7 +174,7 @@ func (this *Server) newClient(n *net.Conn) {
 				return
 			}
 
-			fmt.Println("Socket Waiting Read.")
+			//fmt.Println("Socket Waiting Read.")
 			buf = make([]byte, 1024)
 			n, err := client.Client_Socket.Read(buf)
 
@@ -188,8 +188,8 @@ func (this *Server) newClient(n *net.Conn) {
 
 			if n != 0 {
 				data := string(buf[:n])
-				fmt.Println("Rec data: ", data)
-				fmt.Println("Rec len: ", n)
+				//fmt.Println("Rec data: ", data)
+				//fmt.Println("Rec len: ", n)
 
 				client.RecMsg <- data
 				client.Server.RecDataSize += uint64(n)
@@ -220,7 +220,7 @@ func (this *Server) GetServerQbs() *qbs.Qbs {
 
 func (this *Server) CleanExitUser(conn *net.Conn) {
 	cl := this.UserList[*conn]
-	fmt.Println("EXIT CLIENT:", cl)
+	fmt.Println(cl.Name, " EXIT")
 	ack := new(ReqUserLogout)
 	ack.Id = E_ACK_EXIT
 	ack.AccountID = cl.AccountID

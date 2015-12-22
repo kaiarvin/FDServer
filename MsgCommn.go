@@ -24,6 +24,7 @@ const (
 	E_ACK_ENTERSERVER
 	E_ACK_EXIT
 	E_ACK_CHATDATA
+	E_ACK_SENDUSERNAMELIST
 )
 
 func MsgJsonEncode(msg interface{}) ([]byte, bool) {
@@ -62,7 +63,7 @@ func MsgJsonDecode(data []byte) ([]byte, *MsgHead) {
 	cpzerostr, err := json.Marshal(cpzero)
 	lensub := len(cpstr) - len(cpzerostr)
 	if Head.Length != int64(len(data)-lensub) {
-		fmt.Println("Head.Length:", Head.Length, "len:", int64(len(data)-lensub))
+		fmt.Println("[ERROR Msg Length not equal] Head.Length:", Head.Length, "len:", int64(len(data)-lensub))
 		return nil, nil
 	}
 
@@ -114,7 +115,6 @@ type ReqUserEnterServer struct {
 type AckUserEnterServer struct {
 	MsgHead
 	AccountId int
-	UserList  map[string]int
 	Gname     string
 	Level     int
 	Sex       int8
@@ -133,4 +133,19 @@ type ReqChatData struct {
 	FromName      string
 	ToName        string
 	Data          string
+}
+
+type AckChatData struct {
+	MsgHead
+	FromAccountID int
+	ToAccountID   int
+	FromName      string
+	ToName        string
+	Data          string
+}
+
+type AckUserNameList struct {
+	MsgHead
+	FromName     string
+	UserNameList map[string]int
 }
