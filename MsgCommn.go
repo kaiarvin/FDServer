@@ -2,10 +2,16 @@
 package FDServer
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"time"
+)
+
+const (
+	Const_ServerHead_Len = int32(4)
+	Const_ClientHead_Len = int32(4)
 )
 
 const (
@@ -28,49 +34,50 @@ const (
 )
 
 func MsgJsonEncode(msg interface{}) ([]byte, bool) {
-	buf, err := json.Marshal(msg)
+
+	pkgBody, err := json.Marshal(msg)
 	if err != nil {
 		fmt.Println("MsgJsonEncode Error:", err)
 		return nil, true
 	}
 
-	Length := len(buf)
-	v := reflect.ValueOf(msg).Elem().Field(0).FieldByName("Length")
-	if !v.CanSet() {
-		fmt.Println("MsgJsonEncode Error: Cant Set")
-		return nil, true
-	}
-
-	v.SetInt(int64(Length))
-	buf, err = json.Marshal(msg)
-	if err != nil {
-		fmt.Println("MsgJsonEncode Error:", err)
-		return nil, true
-	}
-	return buf, false
+	headLen := int32(len(pkgBody))
+	pkg := bytes.NewBuffer([]byte{})
+	binary.Write(pkg, binary.BigEndian, headLen)
+	binary.Write(pkg, binary.BigEndian, pkgBody)
+	return pkg.Bytes(), false
 }
 
-func MsgJsonDecode(data []byte) ([]byte, *MsgHead) {
-	var Head *MsgHead
-	err := json.Unmarshal(data, &Head)
-	if err != nil {
-		return nil, nil
+func MsgJsonDecode(client *Client) {
+	if 0 == len(client.RecMsgByte) {
+		return
+	}
+	fmt.Println("MsgJsonDecode")
+	headData := client.RecMsgByte[:Const_ClientHead_Len]
+	var bodyLen int32
+	pkgHead := bytes.NewBuffer(headData)
+	binary.Read(pkgHead, binary.BigEndian, &bodyLen)
+	fmt.Println("MsgJsonDecode bodyLen:", bodyLen)
+
+	if (Const_ClientHead_Len + bodyLen) > int32(len(client.RecMsgByte)) {
+		fmt.Println("MsgJsonDecode Const_ClientHead_Len + bodyLen:", Const_ClientHead_Len+bodyLen)
+		fmt.Println("MsgJsonDecode len(client.RecMsgByte):", len(client.RecMsgByte))
+
+		return
 	}
 
-	cpzero := *Head
-	cpzero.Length = 0
-	cpstr, err := json.Marshal(Head)
-	cpzerostr, err := json.Marshal(cpzero)
-	lensub := len(cpstr) - len(cpzerostr)
-	if Head.Length != int64(len(data)-lensub) {
-		fmt.Println("[ERROR Msg Length not equal] Head.Length:", Head.Length, "len:", int64(len(data)-lensub))
-		return nil, nil
-	}
+	pkgBody := client.RecMsgByte[Const_ClientHead_Len:(Const_ClientHead_Len + bodyLen)]
+	fmt.Println("client.RecMsgByte:", string(client.RecMsgByte))
+	fmt.Println("MsgJsonDecode pkgBody:", string(pkgBody))
+	client.RecMsgByte = client.RecMsgByte[Const_ClientHead_Len+bodyLen:]
 
-	return data, Head
+	chanData := string(pkgBody)
+	fmt.Println(chanData)
+	client.RecMsg <- chanData
 }
 
 func MsgByteToJson(buf []byte, msg interface{}) {
+	fmt.Println(string(buf))
 	err := json.Unmarshal(buf, msg)
 	if err != nil {
 		return
@@ -78,13 +85,12 @@ func MsgByteToJson(buf []byte, msg interface{}) {
 }
 
 type MsgHead struct {
-	Id     int
-	Length int64
+	Id int32
 }
 
 type TestMsg struct {
 	MsgHead
-	A int
+	A int32
 	B string
 }
 

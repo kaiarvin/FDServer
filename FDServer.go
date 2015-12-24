@@ -10,6 +10,7 @@ import (
 	"os"
 	"qbs"
 	"strings"
+	"time"
 )
 
 type Server struct {
@@ -24,6 +25,7 @@ type Server struct {
 	ChatConfigData  map[string]string
 	RecDataSize     uint64
 	AckDataSize     uint64
+	TatleTime       uint64
 	DB              *qbs.Qbs //character数据库
 	IsCloseServer   bool
 }
@@ -121,6 +123,18 @@ func (this *Server) InitServer() error {
 
 	}()
 
+	go func() {
+		fmt.Println("In Time")
+		tm := time.Now()
+		for {
+			if time.Now().After(tm.Add(1 * time.Second)) {
+				this.TatleTime++
+				tm = time.Now()
+			}
+		}
+		fmt.Println("Out Time")
+	}()
+
 	for {
 		if this.IsCloseServer {
 			return nil
@@ -132,14 +146,27 @@ func (this *Server) InitServer() error {
 		switch cmd {
 		case "gm":
 		case "sys":
-			fmt.Println("Input Server Command:")
-			r = bufio.NewReader(os.Stdin)
-			line, _, _ = r.ReadLine()
-			cp := strings.ToUpper(string(line))
-			if cp == "CLOSE" {
-				this.IsCloseServer = true
-			} else if cp == "LIST" {
-				fmt.Println("LIST:", this.UserList)
+			{
+				fmt.Println("Input Server Command:")
+				r = bufio.NewReader(os.Stdin)
+				line, _, _ = r.ReadLine()
+				cp := strings.ToUpper(string(line))
+				if cp == "CLOSE" {
+					this.IsCloseServer = true
+				} else if cp == "LIST" {
+					fmt.Println("LIST:", this.UserList)
+				}
+			}
+		case "show":
+			{
+				var ByteSize float64
+
+				ByteSize = float64(this.RecDataSize / this.TatleTime)
+				ByteSize /= 1024
+				fmt.Println("接收数据:", ByteSize, "kb/s")
+				ByteSize = float64(this.AckDataSize / this.TatleTime)
+				ByteSize /= 1024
+				fmt.Println("发送数据:", ByteSize, "kb/s")
 			}
 		default:
 
@@ -155,6 +182,8 @@ func (this *Server) newClient(n *net.Conn) {
 	client := &Client{IsLive: true, Server: this, Client_Socket: *n}
 	client.RecMsg = make(chan string, 1024)
 	client.AckMsg = make(chan string, 1024)
+	client.RecMsgByte = make([]byte, 0, 1024)
+	client.AckMsgByte = make([]byte, 0, 1024)
 
 	this.UserList[*n] = client
 	fmt.Println(this.UserList)
@@ -188,17 +217,18 @@ func (this *Server) newClient(n *net.Conn) {
 
 			if n != 0 {
 				data := string(buf[:n])
-				//fmt.Println("Rec data: ", data)
-				//fmt.Println("Rec len: ", n)
-
-				client.RecMsg <- data
+				client.RecMsgByte = append(client.RecMsgByte, data...)
+				fmt.Println("Rec data: ", data)
+				fmt.Println("Rec len: ", n)
 				client.Server.RecDataSize += uint64(n)
-				client.ClientMsgProcess()
+
 			} else {
 				fmt.Println("Rec len: ", n)
 			}
 		}
 	}()
+
+	go client.ClientMsgProcess()
 }
 
 func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {

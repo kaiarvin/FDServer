@@ -17,6 +17,8 @@ type Client struct {
 	IsLive        bool
 	RecMsg        chan string
 	AckMsg        chan string
+	RecMsgByte    []byte
+	AckMsgByte    []byte
 	Server        *Server
 	Client_Socket net.Conn
 	UserRelation
@@ -29,35 +31,40 @@ type UserRelation struct {
 
 func (this *Client) ClientMsgProcess() {
 	fmt.Println("In ClientMsgProcess...")
-	select {
-	case buf := <-this.RecMsg:
-		{
-			fmt.Println("In <-this.RecMsg...")
-			data := []byte(buf)
+	for {
+		MsgJsonDecode(this)
 
-			buf, Head := MsgJsonDecode(data)
-			if buf == nil || Head == nil {
-				fmt.Print("RecMsg buf==", buf, "||", "Head==", Head)
-				return
+		select {
+		case buff := <-this.RecMsg:
+			{
+				fmt.Println("In <-this.RecMsg...")
+				data := []byte(buff)
+				Head := new(MsgHead)
+				MsgByteToJson(data, Head)
+
+				fmt.Println("Head:", Head)
+				this.ProcessMsg(data, Head)
+				fmt.Println("Out <-this.RecMsg...")
 			}
-			this.ProcessMsg(buf, Head)
-			fmt.Println("Out <-this.RecMsg...")
-		}
-	case data := <-this.AckMsg:
-		{
-			fmt.Println("In <-this.AckMsg...")
-			buf := []byte(data)
-			n, err := this.Client_Socket.Write(buf)
-			if err != nil {
-				if err != io.EOF {
-					return
+		case data := <-this.AckMsg:
+			{
+				fmt.Println("In <-this.AckMsg...")
+				buf := []byte(data)
+				n, err := this.Client_Socket.Write(buf)
+				if err != nil {
+					if err != io.EOF {
+						break
+					}
 				}
+				fmt.Println("Ack len: ", n)
+				if n != 0 {
+					this.Server.AckDataSize += uint64(n)
+				}
+				fmt.Println("Out <-this.AckMsg...")
 			}
-			fmt.Println("Ack len: ", n)
-			if n != 0 {
-				this.Server.AckDataSize += uint64(n)
+		default:
+			{
 			}
-			fmt.Println("Out <-this.AckMsg...")
 		}
 	}
 }
@@ -66,7 +73,7 @@ func (this *Client) SendDataToChann(buf []byte) {
 	data := string(buf)
 	fmt.Println("SendDataToChann:", data)
 	this.AckMsg <- data
-	this.ClientMsgProcess()
+	//this.ClientMsgProcess()
 }
 
 func (this *Client) SendToSlef(msg interface{}) {
@@ -135,9 +142,9 @@ func (this *Client) SendToAllExceptMe(msg interface{}) {
 	}
 }
 
-func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
+func (this *Client) ProcessMsg(data []byte, head *MsgHead) {
 	//length 取出后吧Msg的length设置为0然后从新获取然后作比较
-	switch Head.Id {
+	switch head.Id {
 	case E_REQ_NONE:
 		{
 			testMsg := new(TestMsg)
@@ -173,24 +180,25 @@ func (this *Client) ProcessMsg(data []byte, Head *MsgHead) {
 			fmt.Print(this.Name, " Enter Server. ", "Resutl:", rel)
 			ack := new(AckUserEnterServer)
 			ack.Id = E_ACK_ENTERSERVER
-			if rel {
-				this.Server.WritList(this)
-				ack.AccountId = this.AccountID
-				ack.Gname = this.Name
-				ack.Level = this.Level
-				ack.Sex = this.Sex
-				this.SendToSlef(ack)
+			this.SendToSlef(ack)
+			//			if rel {
+			//				this.Server.WritList(this)
+			//				ack.AccountId = this.AccountID
+			//				ack.Gname = this.Name
+			//				ack.Level = this.Level
+			//				ack.Sex = this.Sex
+			//				this.SendToSlef(ack)
 
-				acklist := new(AckUserNameList)
-				acklist.Id = E_ACK_SENDUSERNAMELIST
-				acklist.FromName = this.Name
-				acklist.UserNameList = this.Server.NameAccountList
-				this.SendToAllPlayer(acklist)
-			} else {
-				ack := new(AckUserEnterServer)
-				ack.AccountId = 0
-				this.SendToSlef(ack)
-			}
+			//				acklist := new(AckUserNameList)
+			//				acklist.Id = E_ACK_SENDUSERNAMELIST
+			//				acklist.FromName = this.Name
+			//				acklist.UserNameList = this.Server.NameAccountList
+			//				this.SendToAllPlayer(acklist)
+			//			} else {
+			//				ack := new(AckUserEnterServer)
+			//				ack.AccountId = 0
+			//				this.SendToSlef(ack)
+			//			}
 		}
 	case E_REQ_CHATDATA:
 		{
