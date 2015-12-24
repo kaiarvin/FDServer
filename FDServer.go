@@ -130,6 +130,16 @@ func (this *Server) InitServer() error {
 			if time.Now().After(tm.Add(1 * time.Second)) {
 				this.TatleTime++
 				tm = time.Now()
+
+				var ByteSize float64
+				ByteSize = float64(this.RecDataSize / this.TatleTime)
+				fmt.Printf("接收数据:%.3f /s \n", ByteSize)
+				ByteSize /= 1024
+				fmt.Printf("接收数据:%.3f kb/s \n", ByteSize)
+				ByteSize = float64(this.AckDataSize / this.TatleTime)
+				fmt.Printf("发送数据:%.3f /s \n", ByteSize)
+				ByteSize /= 1024
+				fmt.Printf("发送数据:%.3f kb/s \n", ByteSize)
 			}
 		}
 		fmt.Println("Out Time")
@@ -160,7 +170,6 @@ func (this *Server) InitServer() error {
 		case "show":
 			{
 				var ByteSize float64
-
 				ByteSize = float64(this.RecDataSize / this.TatleTime)
 				ByteSize /= 1024
 				fmt.Printf("接收数据:%.3f kb/s \n", ByteSize)

@@ -90,7 +90,13 @@ func (this *Client) SendToSlef(msg interface{}) {
 
 func (this *Client) SendToOtherByAccount(account int, msg interface{}) {
 	conn := this.Server.AccountList[account]
+	if conn == nil {
+		return
+	}
 	cl := this.Server.UserList[conn]
+	if cl == nil {
+		return
+	}
 	fmt.Println("SendToOtherByAccount:", account, this.Server.AccountList, this.Server.UserList)
 	buf, err := MsgJsonEncode(msg)
 	if err {
@@ -183,25 +189,25 @@ func (this *Client) ProcessMsg(data []byte, head *MsgHead) {
 			fmt.Print(this.Name, " Enter Server. ", "Resutl:", rel)
 			ack := new(AckUserEnterServer)
 			ack.Id = E_ACK_ENTERSERVER
-			this.SendToSlef(ack)
-			//			if rel {
-			//				this.Server.WritList(this)
-			//				ack.AccountId = this.AccountID
-			//				ack.Gname = this.Name
-			//				ack.Level = this.Level
-			//				ack.Sex = this.Sex
-			//				this.SendToSlef(ack)
+			//this.SendToSlef(ack)
+			if rel {
+				this.Server.WritList(this)
+				ack.AccountId = this.AccountID
+				ack.Gname = this.Name
+				ack.Level = this.Level
+				ack.Sex = this.Sex
+				this.SendToSlef(ack)
 
-			//				acklist := new(AckUserNameList)
-			//				acklist.Id = E_ACK_SENDUSERNAMELIST
-			//				acklist.FromName = this.Name
-			//				acklist.UserNameList = this.Server.NameAccountList
-			//				this.SendToAllPlayer(acklist)
-			//			} else {
-			//				ack := new(AckUserEnterServer)
-			//				ack.AccountId = 0
-			//				this.SendToSlef(ack)
-			//			}
+				acklist := new(AckUserNameList)
+				acklist.Id = E_ACK_SENDUSERNAMELIST
+				acklist.FromName = this.Name
+				acklist.UserNameList = this.Server.NameAccountList
+				this.SendToAllPlayer(acklist)
+			} else {
+				ack := new(AckUserEnterServer)
+				ack.AccountId = 0
+				this.SendToSlef(ack)
+			}
 		}
 	case E_REQ_CHATDATA:
 		{
