@@ -163,10 +163,10 @@ func (this *Server) InitServer() error {
 
 				ByteSize = float64(this.RecDataSize / this.TatleTime)
 				ByteSize /= 1024
-				fmt.Println("接收数据:", ByteSize, "kb/s")
+				fmt.Printf("接收数据:%.3f kb/s \n", ByteSize)
 				ByteSize = float64(this.AckDataSize / this.TatleTime)
 				ByteSize /= 1024
-				fmt.Println("发送数据:", ByteSize, "kb/s")
+				fmt.Printf("发送数据:%.3f kb/s \n", ByteSize)
 			}
 		default:
 

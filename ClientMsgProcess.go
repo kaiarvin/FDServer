@@ -32,6 +32,9 @@ type UserRelation struct {
 func (this *Client) ClientMsgProcess() {
 	fmt.Println("In ClientMsgProcess...")
 	for {
+		if this.Server.IsCloseServer || !this.IsLive {
+			return
+		}
 		MsgJsonDecode(this)
 
 		select {
