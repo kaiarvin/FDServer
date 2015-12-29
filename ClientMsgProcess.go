@@ -35,7 +35,14 @@ func (this *Client) ClientMsgProcess() {
 		if this.Server.IsCloseServer || !this.IsLive {
 			return
 		}
-		MsgJsonDecode(this)
+		var pkgbody []byte
+		this.RecMsgByte, pkgbody = MsgJsonDecode(this.RecMsgByte)
+
+		if pkgbody == nil {
+			return
+		} else {
+			this.RecMsg <- string(pkgbody)
+		}
 
 		select {
 		case buff := <-this.RecMsg:

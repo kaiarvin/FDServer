@@ -48,32 +48,30 @@ func MsgJsonEncode(msg interface{}) ([]byte, bool) {
 	return pkg.Bytes(), false
 }
 
-func MsgJsonDecode(client *Client) {
-	if 0 == len(client.RecMsgByte) {
-		return
+func MsgJsonDecode(RecBytes []byte) ([]byte, []byte) {
+	if 0 == len(RecBytes) {
+		return nil, nil
 	}
 	fmt.Println("MsgJsonDecode")
-	headData := client.RecMsgByte[:Const_ClientHead_Len]
+	headData := RecBytes[:Const_ClientHead_Len]
 	var bodyLen int32
 	pkgHead := bytes.NewBuffer(headData)
 	binary.Read(pkgHead, binary.BigEndian, &bodyLen)
 	fmt.Println("MsgJsonDecode bodyLen:", bodyLen)
 
-	if (Const_ClientHead_Len + bodyLen) > int32(len(client.RecMsgByte)) {
+	if (Const_ClientHead_Len + bodyLen) > int32(len(RecBytes)) {
 		fmt.Println("MsgJsonDecode Const_ClientHead_Len + bodyLen:", Const_ClientHead_Len+bodyLen)
-		fmt.Println("MsgJsonDecode len(client.RecMsgByte):", len(client.RecMsgByte))
+		fmt.Println("MsgJsonDecode len(RecBytes):", len(RecBytes))
 
-		return
+		return RecBytes, nil
 	}
 
-	pkgBody := client.RecMsgByte[Const_ClientHead_Len:(Const_ClientHead_Len + bodyLen)]
-	fmt.Println("client.RecMsgByte:", string(client.RecMsgByte))
+	pkgBody := RecBytes[Const_ClientHead_Len:(Const_ClientHead_Len + bodyLen)]
+	fmt.Println("client.RecMsgByte:", string(RecBytes))
 	fmt.Println("MsgJsonDecode pkgBody:", string(pkgBody))
-	client.RecMsgByte = client.RecMsgByte[Const_ClientHead_Len+bodyLen:]
+	RecBytes = RecBytes[Const_ClientHead_Len+bodyLen:]
 
-	chanData := string(pkgBody)
-	fmt.Println(chanData)
-	client.RecMsg <- chanData
+	return RecBytes, pkgBody
 }
 
 func MsgByteToJson(buf []byte, msg interface{}) {

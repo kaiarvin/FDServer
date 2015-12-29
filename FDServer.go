@@ -10,7 +10,6 @@ import (
 	"os"
 	"qbs"
 	"strings"
-	"time"
 )
 
 type Server struct {
@@ -70,10 +69,10 @@ func (this *Server) initChatServerData() {
 	this.Host = ""
 	this.DataChannl = make(chan byte, 1024)
 	this.ChatConfigData = make(map[string]string, 0)
-	this.UserList = make(map[net.Conn]*Client, 100)
-	this.NameAccountList = make(map[string]int, 100)
-	this.AccountList = make(map[int]net.Conn, 100)
-	this.NameList = make(map[string]net.Conn, 100)
+	this.UserList = make(map[net.Conn]*Client, 1000)
+	this.NameAccountList = make(map[string]int, 1000)
+	this.AccountList = make(map[int]net.Conn, 1000)
+	this.NameList = make(map[string]net.Conn, 1000)
 	this.IsCloseServer = false
 	//this.ChannlList = make(map[int]chan byte, 0)
 }
@@ -121,28 +120,6 @@ func (this *Server) InitServer() error {
 			fmt.Println("Accept success")
 		}
 
-	}()
-
-	go func() {
-		fmt.Println("In Time")
-		tm := time.Now()
-		for {
-			if time.Now().After(tm.Add(1 * time.Second)) {
-				this.TatleTime++
-				tm = time.Now()
-
-				var ByteSize float64
-				ByteSize = float64(this.RecDataSize / this.TatleTime)
-				fmt.Printf("接收数据:%.3f /s \n", ByteSize)
-				ByteSize /= 1024
-				fmt.Printf("接收数据:%.3f kb/s \n", ByteSize)
-				ByteSize = float64(this.AckDataSize / this.TatleTime)
-				fmt.Printf("发送数据:%.3f /s \n", ByteSize)
-				ByteSize /= 1024
-				fmt.Printf("发送数据:%.3f kb/s \n", ByteSize)
-			}
-		}
-		fmt.Println("Out Time")
 	}()
 
 	for {
@@ -195,7 +172,7 @@ func (this *Server) newClient(n *net.Conn) {
 	client.AckMsgByte = make([]byte, 0, 1024)
 
 	this.UserList[*n] = client
-	fmt.Println(this.UserList)
+	//fmt.Println(this.UserList)
 	client.IsLive = true
 	//	fmt.Println(client)
 	//	fmt.Println("UserList: ", len(this.UserList))
@@ -225,11 +202,12 @@ func (this *Server) newClient(n *net.Conn) {
 			}
 
 			if n != 0 {
-				data := string(buf[:n])
-				client.RecMsgByte = append(client.RecMsgByte, data...)
-				fmt.Println("Rec data: ", data)
-				fmt.Println("Rec len: ", n)
-				client.Server.RecDataSize += uint64(n)
+				//data := string(buf[:n])
+				client.Client_Socket.Write(buf)
+				//client.RecMsgByte = append(client.RecMsgByte, data...)
+				//fmt.Println("Rec data: ", data)
+				//fmt.Println("Rec len: ", n)
+				//client.Server.RecDataSize += uint64(n)
 
 			} else {
 				fmt.Println("Rec len: ", n)
