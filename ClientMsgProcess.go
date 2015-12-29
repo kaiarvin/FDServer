@@ -29,13 +29,13 @@ type UserRelation struct {
 	IgnorID    map[uint64]string
 }
 
-func (this *Client) ClientMsgProcess() {
+func (this *Client) ClientRecMsgProcess() {
 	fmt.Println("In ClientMsgProcess...")
 	for {
-		if this.Server.IsCloseServer || !this.IsLive {
-			return
-		}
-		var pkgbody []byte
+		//		if this.Server.IsCloseServer || !this.IsLive {
+		//			return
+		//		}
+		var pkgbody []byte //发送时未考虑
 		this.RecMsgByte, pkgbody = MsgJsonDecode(this.RecMsgByte)
 
 		if pkgbody == nil {
@@ -56,22 +56,6 @@ func (this *Client) ClientMsgProcess() {
 				this.ProcessMsg(data, Head)
 				fmt.Println("Out <-this.RecMsg...")
 			}
-		case data := <-this.AckMsg:
-			{
-				fmt.Println("In <-this.AckMsg...")
-				buf := []byte(data)
-				n, err := this.Client_Socket.Write(buf)
-				if err != nil {
-					if err != io.EOF {
-						break
-					}
-				}
-				fmt.Println("Ack len: ", n)
-				if n != 0 {
-					this.Server.AckDataSize += uint64(n)
-				}
-				fmt.Println("Out <-this.AckMsg...")
-			}
 		default:
 			{
 			}
@@ -79,11 +63,32 @@ func (this *Client) ClientMsgProcess() {
 	}
 }
 
+func (this *Client) ClientAckMsgProcess(AckByte []byte) {
+	select {
+	case data := <-this.AckMsg:
+		{
+			fmt.Println("In <-this.AckMsg...")
+			buf := []byte(data)
+			n, err := this.Client_Socket.Write(buf)
+			if err != nil {
+				if err != io.EOF {
+					break
+				}
+			}
+			fmt.Println("Ack len: ", n)
+			if n != 0 {
+				this.Server.AckDataSize += uint64(n)
+			}
+			fmt.Println("Out <-this.AckMsg...")
+		}
+	}
+}
+
 func (this *Client) SendDataToChann(buf []byte) {
-	data := string(buf)
-	fmt.Println("SendDataToChann:", data)
-	this.AckMsg <- data
-	//this.ClientMsgProcess()
+	//data := string(buf)
+	//fmt.Println("SendDataToChann:", data)
+	//this.AckMsg <- data
+	this.ClientAckMsgProcess(buf)
 }
 
 func (this *Client) SendToSlef(msg interface{}) {
