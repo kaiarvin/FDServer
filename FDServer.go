@@ -12,6 +12,17 @@ import (
 	"strings"
 )
 
+const (
+	Const_Loger_sys    = 0
+	COnst_Loger_Player = 1
+)
+const (
+	Const_Log_NoLog        = 0
+	Const_Log_level_Debug  = 1
+	Const_Log_level_Realse = 2
+	Const_Log_CanWrite     = Const_Log_level_Realse
+)
+
 type Server struct {
 	ID              int                  //服务器ID
 	Port            int                  //监听Client端口号
@@ -27,6 +38,7 @@ type Server struct {
 	TatleTime       uint64
 	DB              *qbs.Qbs //character数据库
 	IsCloseServer   bool
+	Loger           []*FDLog
 }
 
 func (this *Server) processConf(args []string) {
@@ -74,6 +86,7 @@ func (this *Server) initChatServerData() {
 	this.AccountList = make(map[int]net.Conn, 1000)
 	this.NameList = make(map[string]net.Conn, 1000)
 	this.IsCloseServer = false
+	this.Loger = make([]*FDLog, 10, 20)
 	//this.ChannlList = make(map[int]chan byte, 0)
 }
 
@@ -102,12 +115,15 @@ func (this *Server) InitServer() error {
 	DBPort := this.ChatConfigData["ChatDBPort"]
 	DBName := this.ChatConfigData["ChatDBName"]
 	DBParam := this.ChatConfigData["ChatDBParam"]
+
 	dberr := this.initQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
 	if dberr != nil {
 		fmt.Println(dberr)
 		return err
 	}
 	defer this.GetServerQbs().Close()
+
+	this.InitLoger()
 	//监听连接
 	go func() {
 		for {
@@ -212,6 +228,9 @@ func (this *Server) newClient(n *net.Conn) {
 				client.ClientRecMsgProcess()
 			} else {
 				fmt.Println("Rec len: ", n)
+				fmt.Println("Read Msg:", err)
+				client.IsLive = false
+				continue
 			}
 		}
 	}()
@@ -256,4 +275,10 @@ func (this *Server) WritList(cl *Client) {
 	this.AccountList[cl.AccountID] = cl.Client_Socket
 	this.NameList[cl.Name] = cl.Client_Socket
 	this.NameAccountList[cl.Name] = cl.AccountID
+}
+
+func (this *Server) InitLoger() {
+	fmt.Println("InitLoger")
+	this.Loger[Const_Loger_sys] = new(FDLog)
+	this.Loger[Const_Loger_sys].InitFDLog(Const_Log_level_Realse, "System.log")
 }

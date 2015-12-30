@@ -31,6 +31,7 @@ type UserRelation struct {
 
 func (this *Client) ClientRecMsgProcess() {
 	fmt.Println("In ClientMsgProcess...")
+	//this.Server.Loger[Const_Loger_sys].WriteLog("Test this Log %d,%d", 10, 20)
 	for {
 		var pkgbody []byte
 		this.RecMsgByte, pkgbody = MsgJsonDecode(this.RecMsgByte)
