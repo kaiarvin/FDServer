@@ -14,7 +14,7 @@ import (
 
 const (
 	Const_Loger_sys    = 0
-	COnst_Loger_Player = 1
+	Const_Loger_Player = 1
 )
 const (
 	Const_Log_NoLog        = 0
@@ -39,6 +39,9 @@ type Server struct {
 	DB              *qbs.Qbs //character数据库
 	IsCloseServer   bool
 	Loger           []*FDLog
+	SecondTimeers   []*FDTimer
+	MinuteTimers    []*FDTimer
+	OneTimesTimers  []*FDTimer
 }
 
 func (this *Server) processConf(args []string) {
@@ -87,6 +90,9 @@ func (this *Server) initChatServerData() {
 	this.NameList = make(map[string]net.Conn, 1000)
 	this.IsCloseServer = false
 	this.Loger = make([]*FDLog, 10, 20)
+	this.SecondTimeers = make([]*FDTimer, 10, 40)
+	this.MinuteTimers = make([]*FDTimer, 10, 40)
+	this.OneTimesTimers = make([]*FDTimer, 10, 40)
 	//this.ChannlList = make(map[int]chan byte, 0)
 }
 
@@ -116,6 +122,7 @@ func (this *Server) InitServer() error {
 	DBName := this.ChatConfigData["ChatDBName"]
 	DBParam := this.ChatConfigData["ChatDBParam"]
 
+	//DB初始化
 	dberr := this.initQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
 	if dberr != nil {
 		fmt.Println(dberr)
@@ -123,7 +130,12 @@ func (this *Server) InitServer() error {
 	}
 	defer this.GetServerQbs().Close()
 
+	//初始化log文件
 	this.InitLoger()
+
+	//运行定时器
+	go this.RunTimer()
+
 	//监听连接
 	go func() {
 		for {
@@ -188,10 +200,7 @@ func (this *Server) newClient(n *net.Conn) {
 	client.AckMsgByte = make([]byte, 0, Const_MsgBody_Len)
 
 	this.UserList[*n] = client
-	//fmt.Println(this.UserList)
 	client.IsLive = true
-	//	fmt.Println(client)
-	//	fmt.Println("UserList: ", len(this.UserList))
 
 	//创建接受发送线程
 	go func() {
@@ -205,7 +214,6 @@ func (this *Server) newClient(n *net.Conn) {
 				return
 			}
 
-			//fmt.Println("Socket Waiting Read.")
 			buf = make([]byte, Const_MsgBody_Len)
 			n, err := client.Client_Socket.Read(buf)
 
@@ -281,4 +289,7 @@ func (this *Server) InitLoger() {
 	fmt.Println("InitLoger")
 	this.Loger[Const_Loger_sys] = new(FDLog)
 	this.Loger[Const_Loger_sys].InitFDLog(Const_Log_level_Realse, "System.log")
+
+	this.Loger[Const_Loger_Player] = new(FDLog)
+	this.Loger[Const_Loger_Player].InitFDLog(Const_Log_level_Realse, "Player.log")
 }
