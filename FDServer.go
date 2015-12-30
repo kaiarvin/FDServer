@@ -166,10 +166,10 @@ func (this *Server) InitServer() error {
 
 func (this *Server) newClient(n *net.Conn) {
 	client := &Client{IsLive: true, Server: this, Client_Socket: *n}
-	client.RecMsg = make(chan string, 1024)
-	client.AckMsg = make(chan string, 1024)
-	client.RecMsgByte = make([]byte, 0, 1024)
-	client.AckMsgByte = make([]byte, 0, 1024)
+	client.RecMsg = make(chan string, Const_MsgBody_Len)
+	client.AckMsg = make(chan string, Const_MsgBody_Len)
+	client.RecMsgByte = make([]byte, 0, Const_MsgBody_Len)
+	client.AckMsgByte = make([]byte, 0, Const_MsgBody_Len)
 
 	this.UserList[*n] = client
 	//fmt.Println(this.UserList)
@@ -190,7 +190,7 @@ func (this *Server) newClient(n *net.Conn) {
 			}
 
 			//fmt.Println("Socket Waiting Read.")
-			buf = make([]byte, 1024)
+			buf = make([]byte, Const_MsgBody_Len)
 			n, err := client.Client_Socket.Read(buf)
 
 			if err != nil {
@@ -202,20 +202,20 @@ func (this *Server) newClient(n *net.Conn) {
 			}
 
 			if n != 0 {
-				//data := string(buf[:n])
-				client.Client_Socket.Write(buf)
-				//client.RecMsgByte = append(client.RecMsgByte, data...)
-				//fmt.Println("Rec data: ", data)
-				//fmt.Println("Rec len: ", n)
-				//client.Server.RecDataSize += uint64(n)
-
+				if len(client.RecMsgByte) != 0 {
+					client.RecMsgByte = append(client.RecMsgByte, buf[:n]...)
+				} else {
+					client.RecMsgByte = buf[:n]
+				}
+				fmt.Println("Rec len: ", n)
+				client.Server.RecDataSize += uint64(n)
+				client.ClientRecMsgProcess()
 			} else {
 				fmt.Println("Rec len: ", n)
 			}
 		}
 	}()
 
-	go client.ClientMsgProcess()
 }
 
 func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {

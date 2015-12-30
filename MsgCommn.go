@@ -12,6 +12,7 @@ import (
 const (
 	Const_ServerHead_Len = int32(4)
 	Const_ClientHead_Len = int32(4)
+	Const_MsgBody_Len    = int32(1024)
 )
 
 const (
@@ -49,15 +50,20 @@ func MsgJsonEncode(msg interface{}) ([]byte, bool) {
 }
 
 func MsgJsonDecode(RecBytes []byte) ([]byte, []byte) {
-	if 0 == len(RecBytes) {
-		return nil, nil
+	if Const_ClientHead_Len > int32(len(RecBytes)) {
+		return RecBytes, nil
 	}
 	fmt.Println("MsgJsonDecode")
+	fmt.Println(string(RecBytes))
 	headData := RecBytes[:Const_ClientHead_Len]
-	var bodyLen int32
+	var bodyLen int32 = 0
 	pkgHead := bytes.NewBuffer(headData)
-	binary.Read(pkgHead, binary.BigEndian, &bodyLen)
 	fmt.Println("MsgJsonDecode bodyLen:", bodyLen)
+	binary.Read(pkgHead, binary.BigEndian, &bodyLen)
+	//fmt.Println("MsgJsonDecode bodyLen:", bodyLen)
+	if bodyLen > Const_MsgBody_Len {
+		return nil, nil
+	}
 
 	if (Const_ClientHead_Len + bodyLen) > int32(len(RecBytes)) {
 		fmt.Println("MsgJsonDecode Const_ClientHead_Len + bodyLen:", Const_ClientHead_Len+bodyLen)

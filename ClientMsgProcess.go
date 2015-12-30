@@ -32,10 +32,7 @@ type UserRelation struct {
 func (this *Client) ClientRecMsgProcess() {
 	fmt.Println("In ClientMsgProcess...")
 	for {
-		//		if this.Server.IsCloseServer || !this.IsLive {
-		//			return
-		//		}
-		var pkgbody []byte //发送时未考虑
+		var pkgbody []byte
 		this.RecMsgByte, pkgbody = MsgJsonDecode(this.RecMsgByte)
 
 		if pkgbody == nil {
@@ -63,32 +60,20 @@ func (this *Client) ClientRecMsgProcess() {
 	}
 }
 
-func (this *Client) ClientAckMsgProcess(AckByte []byte) {
-	select {
-	case data := <-this.AckMsg:
-		{
-			fmt.Println("In <-this.AckMsg...")
-			buf := []byte(data)
-			n, err := this.Client_Socket.Write(buf)
-			if err != nil {
-				if err != io.EOF {
-					break
-				}
-			}
-			fmt.Println("Ack len: ", n)
-			if n != 0 {
-				this.Server.AckDataSize += uint64(n)
-			}
-			fmt.Println("Out <-this.AckMsg...")
+func (this *Client) SendDataToChann(buf []byte) {
+	fmt.Println("In SendDataToChann...")
+	fmt.Println(string(buf))
+	n, err := this.Client_Socket.Write(buf)
+	if err != nil {
+		if err != io.EOF {
+			return
 		}
 	}
-}
-
-func (this *Client) SendDataToChann(buf []byte) {
-	//data := string(buf)
-	//fmt.Println("SendDataToChann:", data)
-	//this.AckMsg <- data
-	this.ClientAckMsgProcess(buf)
+	fmt.Println("Ack len: ", n)
+	if n != 0 {
+		this.Server.AckDataSize += uint64(n)
+	}
+	fmt.Println("Out SendDataToChann...")
 }
 
 func (this *Client) SendToSlef(msg interface{}) {
