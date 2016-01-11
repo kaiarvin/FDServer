@@ -39,7 +39,7 @@ type Server struct {
 	DB              *qbs.Qbs //character数据库
 	IsCloseServer   bool
 	Loger           []*FDLog
-	SecondTimeers   []*FDTimer
+	SecondTimers    []*FDTimer
 	MinuteTimers    []*FDTimer
 	OneTimesTimers  []*FDTimer
 }
@@ -90,9 +90,9 @@ func (this *Server) initChatServerData() {
 	this.NameList = make(map[string]net.Conn, 1000)
 	this.IsCloseServer = false
 	this.Loger = make([]*FDLog, 10, 20)
-	this.SecondTimeers = make([]*FDTimer, 10, 40)
-	this.MinuteTimers = make([]*FDTimer, 10, 40)
-	this.OneTimesTimers = make([]*FDTimer, 10, 40)
+	this.SecondTimers = make([]*FDTimer, 0, 40)
+	this.MinuteTimers = make([]*FDTimer, 0, 40)
+	this.OneTimesTimers = make([]*FDTimer, 0, 40)
 	//this.ChannlList = make(map[int]chan byte, 0)
 }
 
@@ -123,7 +123,8 @@ func (this *Server) InitServer() error {
 	DBParam := this.ChatConfigData["ChatDBParam"]
 
 	//DB初始化
-	dberr := this.initQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
+	var dberr error
+	this.DB, dberr = this.initQbs(DBType, DBUser, DBPw, DBHost, DBPort, DBName, DBParam)
 	if dberr != nil {
 		fmt.Println(dberr)
 		return err
@@ -245,17 +246,16 @@ func (this *Server) newClient(n *net.Conn) {
 
 }
 
-func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) error {
+func (this *Server) initQbs(dbtype, dbuser, pw, dbhost, dbport, dbname, param string) (*qbs.Qbs, error) {
 	dsn := dbuser + ":" + pw + "@tcp(" + dbhost + ":" + dbport + ")/" + dbname + "?" + param
 
 	q, err := DBInit(dbtype, dsn, dbname)
 
 	if nil != err {
 		fmt.Println(err)
-		return err
+		return nil, err
 	}
-	this.DB = q
-	return nil
+	return q, nil
 }
 
 func (this *Server) GetServerQbs() *qbs.Qbs {
