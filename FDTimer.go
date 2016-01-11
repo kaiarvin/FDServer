@@ -1,10 +1,7 @@
 // Timer
 package FDServer
 
-import (
-	"fmt"
-	"time"
-)
+import "time"
 
 type FDTimer struct {
 	TimerName string
@@ -14,18 +11,18 @@ type FDTimer struct {
 	RunFunc   func()
 }
 
-type TestTimer struct {
-}
+//type TestTimer struct {
+//}
 
 func (this *Server) RunTimer() {
 
-	testTime := new(TestTimer)
-	fmt.Println("SetTime 0")
-	this.MinuteTimers = append(this.MinuteTimers, new(FDTimer))
-	this.MinuteTimers[0].SetTime("Test", 1, 0, 60, testTime.CallTime)
+	//	testTime := new(TestTimer)
+	//	fmt.Println("SetTime 0")
+	//	this.MinuteTimers = append(this.MinuteTimers, new(FDTimer))
+	//	this.MinuteTimers[0].SetTime("Test", 1, 0, 60, testTime.CallTime)
 
-	this.MinuteTimers = append(this.MinuteTimers, new(FDTimer))
-	this.MinuteTimers[1].SetTime("Test", 2, 0, 60, testTime.CallTime)
+	//	this.MinuteTimers = append(this.MinuteTimers, new(FDTimer))
+	//	this.MinuteTimers[1].SetTime("Test", 2, 0, 60, testTime.CallTime)
 
 	SecondTime := time.Now()
 	MinuteTime := time.Now()
@@ -80,6 +77,6 @@ func (this *FDTimer) SetTime(name string, start, end, second int64, run func()) 
 	this.RunFunc = run
 }
 
-func (this *TestTimer) CallTime() {
-	fmt.Println("Call Timer 0!")
-}
+//func (this *TestTimer) CallTime() {
+//	fmt.Println("Call Timer 0!")
+//}
